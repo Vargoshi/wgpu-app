@@ -19,7 +19,7 @@ use winit::{
 use cgmath::prelude::*;
 
 use crate::{
-    instance::{Instance, NUM_INSTANCES_PER_ROW},
+    instance::Instance,
     model::{DrawModel, Vertex},
 };
 
@@ -41,7 +41,7 @@ pub enum CompareFunction {
 fn main() {
     env_logger::init(); // Necessary for logging within WGPU
     let event_loop = EventLoop::new(); // Loop provided by winit for handling window events
-    let window = WindowBuilder::new().build(&event_loop).unwrap();
+    let window = WindowBuilder::new().build(&event_loop).unwrap(); // Create a window centered around the Loop
 
     let instance = wgpu::Instance::new(wgpu::Backends::all());
     let surface = unsafe { instance.create_surface(&window) };
@@ -112,7 +112,7 @@ fn main() {
         texture::Texture::create_depth_texture(&device, &config, "depth_texture");
 
     let obj_model =
-        resources::load_model("cube.obj", &device, &queue, &texture_bind_group_layout).unwrap();
+        resources::load_model("wallcube.obj", &device, &queue, &texture_bind_group_layout).unwrap();
 
     let render_pipeline = pipeline_init(
         &device,
@@ -296,25 +296,44 @@ fn pipeline_init(
 }
 
 fn instance_init(device: &wgpu::Device) -> (Vec<Instance>, wgpu::Buffer) {
-    const SPACE_BETWEEN: f32 = 3.0;
-    let instances = (0..NUM_INSTANCES_PER_ROW)
+    #[rustfmt::skip]
+    let height_map = vec![
+        1, 1, 1, 1, 1, 1, 1, 1, 
+        1, 0, 0, 1, 0, 0, 0, 1, 
+        1, 0, 0, 1, 0, 1, 0, 1, 
+        1, 1, 1, 1, 0, 0, 0, 1, 
+        1, 0, 0, 0, 0, 0, 0, 1, 
+        1, 0, 0, 0, 0, 1, 0, 1, 
+        1, 0, 0, 0, 0, 0, 0, 1, 
+        1, 1, 1, 1, 1, 1, 1, 1,
+    ];
+
+    let map_block_width = 8;
+    let map_block_depth = 8;
+
+    const BLOCK_SIZE: f32 = 2.0;
+    let instances = (0..map_block_depth)
         .flat_map(|z| {
-            (0..NUM_INSTANCES_PER_ROW).map(move |x| {
-                let x = SPACE_BETWEEN * (x as f32 - NUM_INSTANCES_PER_ROW as f32 / 2.0);
-                let z = SPACE_BETWEEN * (z as f32 - NUM_INSTANCES_PER_ROW as f32 / 2.0);
-
-                let position = cgmath::Vector3 { x, y: 0.0, z };
-
-                let rotation = if position.is_zero() {
-                    cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_z(), cgmath::Deg(0.0))
-                } else {
-                    cgmath::Quaternion::from_axis_angle(position.normalize(), cgmath::Deg(45.0))
-                };
-
-                Instance { position, rotation }
-            })
+            (0..map_block_width)
+                .map(move |x| (x, z))
+                .flat_map(|(x, z)| (0..height_map[z * map_block_width + x]).map(move |y| (x, y, z)))
+        })
+        .map(|(x, y, z)| {
+            (
+                BLOCK_SIZE * x as f32,
+                BLOCK_SIZE * y as f32,
+                BLOCK_SIZE * z as f32,
+            )
+        })
+        .map(|(x, y, z)| Instance {
+            position: cgmath::Vector3 { x, y, z },
+            rotation: cgmath::Quaternion::from_axis_angle(
+                cgmath::Vector3::unit_z(),
+                cgmath::Deg(0.0),
+            ),
         })
         .collect::<Vec<_>>();
+
     let instance_data = instances
         .iter()
         .map(instance::Instance::to_raw)
@@ -338,7 +357,7 @@ fn camera_init(
     wgpu::BindGroup,
     camera_controller::CameraController,
 ) {
-    let mut camera = camera::Camera {
+    let camera = camera::Camera {
         // position the camera one unit up and 2 units back
         // +z is out of the screen
         eye: (0.0, 1.0, 2.0).into(),
@@ -380,7 +399,7 @@ fn camera_init(
         }],
         label: Some("camera_bind_group"),
     });
-    let mut camera_controller = camera_controller::CameraController::new(0.2);
+    let camera_controller = camera_controller::CameraController::new(0.2);
     (
         camera,
         camera_uniform,
