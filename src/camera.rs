@@ -1,13 +1,4 @@
-
-pub(crate) struct Camera {
-    pub(crate) eye: cgmath::Point3<f32>,
-    pub(crate) target: cgmath::Point3<f32>,
-    pub(crate) up: cgmath::Vector3<f32>,
-    pub(crate) aspect: f32,
-    pub(crate) fovy: f32,
-    pub(crate) znear: f32,
-    pub(crate) zfar: f32,
-}
+use cgmath::*;
 
 #[rustfmt::skip]
 pub const OPENGL_TO_WGPU_MATRIX: cgmath::Matrix4<f32> = cgmath::Matrix4::new(
@@ -17,14 +8,66 @@ pub const OPENGL_TO_WGPU_MATRIX: cgmath::Matrix4<f32> = cgmath::Matrix4::new(
     0.0, 0.0, 0.5, 1.0,
 );
 
-impl Camera {
-    pub(crate) fn build_view_projection_matrix(&self) -> cgmath::Matrix4<f32> {
-        // 1.
-        let view = cgmath::Matrix4::look_at_rh(self.eye, self.target, self.up);
-        // 2.
-        let proj = cgmath::perspective(cgmath::Deg(self.fovy), self.aspect, self.znear, self.zfar);
+#[derive(Debug)]
+pub(crate) struct Camera {
+    pub position: Point3<f32>,
+    pub yaw: Rad<f32>,
+    pub pitch: Rad<f32>,
+}
 
-        // 3.
-        OPENGL_TO_WGPU_MATRIX * proj * view
+impl Camera {
+    pub(crate) fn new<V: Into<Point3<f32>>, Y: Into<Rad<f32>>, P: Into<Rad<f32>>>(
+        position: V,
+        yaw: Y,
+        pitch: P,
+    ) -> Self {
+        Self {
+            position: position.into(),
+            yaw: yaw.into(),
+            pitch: pitch.into(),
+        }
+    }
+
+    pub(crate) fn calc_matrix(&self) -> Matrix4<f32> {
+        let (sin_pitch, cos_pitch) = self.pitch.0.sin_cos();
+        let (sin_yaw, cos_yaw) = self.yaw.0.sin_cos();
+
+        Matrix4::look_to_rh(
+            self.position,
+            Vector3::new(cos_pitch * cos_yaw, sin_pitch, cos_pitch * sin_yaw).normalize(),
+            Vector3::unit_y(),
+        )
+    }
+}
+
+pub(crate) struct Projection {
+    aspect: f32,
+    fovy: Rad<f32>,
+    znear: f32,
+    zfar: f32,
+}
+
+impl Projection {
+    pub(crate) fn new<F: Into<Rad<f32>>>(
+        width: u32,
+        height: u32,
+        fovy: F,
+        znear: f32,
+        zfar: f32,
+    ) -> Self {
+        Self {
+            aspect: width as f32 / height as f32,
+            fovy: fovy.into(),
+            znear,
+            zfar,
+        }
+    }
+
+    pub(crate) fn resize(&mut self, width: u32, height: u32) {
+        self.aspect = width as f32 / height as f32;
+    }
+
+    pub(crate) fn calc_matrix(&self) -> Matrix4<f32> {
+        OPENGL_TO_WGPU_MATRIX * perspective(self.fovy, self.aspect, self.znear, self.zfar)
     }
 }
