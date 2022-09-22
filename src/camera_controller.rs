@@ -132,8 +132,8 @@ impl CameraController {
         ];
         let mapwidth = 8;
 
-        dbg!(camera.position);
-        dbg!(camera.yaw);
+        // dbg!(camera.position);
+        // dbg!(camera.yaw);
 
         let x_offset = if camera.yaw.cos() < 0.0 { -1 } else { 1 };
 

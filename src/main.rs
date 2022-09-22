@@ -5,7 +5,6 @@ mod camera_controller;
 mod camera_uniform;
 mod instance;
 mod model;
-mod resources;
 mod texture;
 
 use std::time::Instant;
@@ -22,7 +21,7 @@ use cgmath::prelude::*;
 
 use crate::{
     instance::Instance,
-    model::{DrawModel, Vertex},
+    model::Vertex,
 };
 
 
@@ -49,33 +48,173 @@ struct MapTiles {
 
 const VERTICES: &[ModelVertex] = &[
     ModelVertex {
-        position: [-0.0868241, 0.49240386, 0.0],
-        tex_coords: [0.4131759, 0.00759614],
+        position: [-1.0, -1.0, 1.0],
+        tex_coords: [0.0, 1.0],
         normal: [0.0, 0.0, 0.0]
-    }, // A
+    }, 
     ModelVertex {
-        position: [-0.49513406, 0.06958647, 0.0],
-        tex_coords: [0.0048659444, 0.43041354],
+        position: [1.0, -1.0, 1.0],
+        tex_coords: [1.0, 1.0],
         normal: [0.0, 0.0, 0.0]
-    }, // B
+    }, 
     ModelVertex {
-        position: [-0.21918549, -0.44939706, 0.0],
-        tex_coords: [0.28081453, 0.949397],
+        position: [1.0, 1.0, 1.0],
+        tex_coords: [1.0, 0.0],
         normal: [0.0, 0.0, 0.0]
-    }, // C
+    }, 
     ModelVertex {
-        position: [0.35966998, -0.3473291, 0.0],
-        tex_coords: [0.85967, 0.84732914],
+        position: [-1.0, 1.0, 1.0],
+        tex_coords: [0.0, 0.0],
         normal: [0.0, 0.0, 0.0]
-    }, // D
+    }, 
+
+
+
+
     ModelVertex {
-        position: [0.44147372, 0.2347359, 0.0],
-        tex_coords: [0.9414737, 0.2652641],
+        position: [-1.0, 1.0, -1.0],
+        tex_coords: [1.0, 0.0],
         normal: [0.0, 0.0, 0.0]
-    }, // E
+    }, 
+    ModelVertex {
+        position: [1.0, 1.0, -1.0],
+        tex_coords: [0.0, 0.0],
+        normal: [0.0, 0.0, 0.0]
+    }, 
+    ModelVertex {
+        position: [1.0, -1.0, -1.0],
+        tex_coords: [0.0, 1.0],
+        normal: [0.0, 0.0, 0.0]
+    }, 
+    ModelVertex {
+        position: [-1.0, -1.0, -1.0],
+        tex_coords: [1.0, 1.0],
+        normal: [0.0, 0.0, 0.0]
+    }, 
+
+
+
+    ModelVertex {
+        position: [1.0, -1.0, -1.0],
+        tex_coords: [1.0, 1.0],
+        normal: [0.0, 0.0, 0.0]
+    }, 
+    ModelVertex {
+        position: [1.0, 1.0, -1.0],
+        tex_coords: [1.0, 0.0],
+        normal: [0.0, 0.0, 0.0]
+    }, 
+    ModelVertex {
+        position: [1.0, 1.0, 1.0],
+        tex_coords: [0.0, 0.0],
+        normal: [0.0, 0.0, 0.0]
+    }, 
+    ModelVertex {
+        position: [1.0, -1.0, 1.0],
+        tex_coords: [0.0, 1.0],
+        normal: [0.0, 0.0, 0.0]
+    }, 
+
+
+
+    ModelVertex {
+        position: [-1.0, -1.0, 1.0],
+        tex_coords: [1.0, 1.0],
+        normal: [0.0, 0.0, 0.0]
+    }, 
+    ModelVertex {
+        position: [-1.0, 1.0, 1.0],
+        tex_coords: [1.0, 0.0],
+        normal: [0.0, 0.0, 0.0]
+    }, 
+    ModelVertex {
+        position: [-1.0, 1.0, -1.0],
+        tex_coords: [0.0, 0.0],
+        normal: [0.0, 0.0, 0.0]
+    }, 
+    ModelVertex {
+        position: [-1.0, -1.0, -1.0],
+        tex_coords: [0.0, 1.0],
+        normal: [0.0, 0.0, 0.0]
+    }, 
+
+
+
+    ModelVertex {
+        position: [1.0, 1.0, -1.0],
+        tex_coords: [1.0, 0.0],
+        normal: [0.0, 0.0, 0.0]
+    }, 
+    ModelVertex {
+        position: [-1.0, 1.0, -1.0],
+        tex_coords: [0.0, 0.0],
+        normal: [0.0, 0.0, 0.0]
+    }, 
+    ModelVertex {
+        position: [-1.0, 1.0, 1.0],
+        tex_coords: [0.0, 1.0],
+        normal: [0.0, 0.0, 0.0]
+    }, 
+    ModelVertex {
+        position: [1.0, 1.0, 1.0],
+        tex_coords: [1.0, 1.0],
+        normal: [0.0, 0.0, 0.0]
+    }, 
+
+
+
+
+    ModelVertex {
+        position: [1.0, -1.0, 1.0],
+        tex_coords: [0.0, 1.0],
+        normal: [0.0, 0.0, 0.0]
+    }, 
+    ModelVertex {
+        position: [-1.0, -1.0, 1.0],
+        tex_coords: [1.0, 1.0],
+        normal: [0.0, 0.0, 0.0]
+    }, 
+    ModelVertex {
+        position: [-1.0, -1.0, -1.0],
+        tex_coords: [1.0, 0.0],
+        normal: [0.0, 0.0, 0.0]
+    }, 
+    ModelVertex {
+        position: [1.0, -1.0, -1.0],
+        tex_coords: [0.0, 0.0],
+        normal: [0.0, 0.0, 0.0]
+    }, 
 ];
 
-const INDICES: &[u16] = &[0, 1, 4, 1, 2, 4, 2, 3, 4, /* padding */ 0];
+const INDICES: &[u16] = &[0, 1, 2, 2, 3, 0,
+4, 5, 6, 6, 7, 4,
+8, 9, 10, 10, 11, 8,
+12, 13, 14, 14, 15, 12,
+16, 17, 18, 18, 19, 16,
+20, 21, 22, 22, 23, 20,];
+
+const VERTICES2: &[ModelVertex] = &[ModelVertex {
+    position: [1.0, -1.0, -1.0],
+    tex_coords: [1.0, 0.0],
+    normal: [0.0, 0.0, 0.0]
+}, 
+ModelVertex {
+    position: [-1.0, -1.0, -1.0],
+    tex_coords: [0.0, 0.0],
+    normal: [0.0, 0.0, 0.0]
+}, 
+ModelVertex {
+    position: [-1.0, -1.0, 1.0],
+    tex_coords: [0.0, 1.0],
+    normal: [0.0, 0.0, 0.0]
+}, 
+ModelVertex {
+    position: [1.0, -1.0, 1.0],
+    tex_coords: [1.0, 1.0],
+    normal: [0.0, 0.0, 0.0]
+}, ];
+
+const INDICES2: &[u16] = &[0, 1, 2, 2, 3, 0,];
 
 fn main() {
     env_logger::init(); // Necessary for logging within WGPU
@@ -111,9 +250,7 @@ fn main() {
     };
     surface.configure(&device, &config);
 
-    let diffuse_bytes = include_bytes!("happy-tree.png");
-        let diffuse_texture =
-            texture::Texture::from_bytes(&device, &queue, diffuse_bytes, "happy-tree.png").unwrap();
+    
 
     let texture_bind_group_layout =
         device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -140,6 +277,9 @@ fn main() {
             label: Some("texture_bind_group_layout"),
         });
 
+        let diffuse_bytes = include_bytes!("wall.png");
+        let diffuse_texture =
+            texture::Texture::from_bytes(&device, &queue, diffuse_bytes, "wall.png").unwrap();
         let diffuse_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &texture_bind_group_layout,
             entries: &[
@@ -153,6 +293,24 @@ fn main() {
                 },
             ],
             label: Some("diffuse_bind_group"),
+        });
+
+        let diffuse_bytes2 = include_bytes!("floor.png");
+        let diffuse_texture2 =
+            texture::Texture::from_bytes(&device, &queue, diffuse_bytes2, "floor.png").unwrap();
+        let diffuse_bind_group2 = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: &texture_bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::TextureView(&diffuse_texture2.view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::Sampler(&diffuse_texture2.sampler),
+                },
+            ],
+            label: Some("diffuse_bind_group2"),
         });
 
 
@@ -204,6 +362,18 @@ fn main() {
         });
         let num_indices = INDICES.len() as u32;
 
+        let vertex_buffer2 = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Vertex Buffer"),
+            contents: bytemuck::cast_slice(VERTICES2),
+            usage: wgpu::BufferUsages::VERTEX,
+        });
+        let index_buffer2 = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Index Buffer"),
+            contents: bytemuck::cast_slice(INDICES2),
+            usage: wgpu::BufferUsages::INDEX,
+        });
+        let num_indices2 = INDICES2.len() as u32;
+
         let walls = MapTiles{
             map: vec![
                 2, 2, 2, 2, 2, 2, 2, 2, 
@@ -240,13 +410,6 @@ fn main() {
 
     let mut depth_texture =
         texture::Texture::create_depth_texture(&device, &config, "depth_texture");
-
-    let obj_model =
-        resources::load_model("wallcube.obj", &device, &queue, &texture_bind_group_layout).unwrap();
-
-    let obj_model2 =
-        resources::load_model("floortile.obj", &device, &queue, &texture_bind_group_layout)
-            .unwrap();
 
     let render_pipeline = pipeline_init(
         &device,
@@ -350,23 +513,20 @@ fn main() {
                     });
 
                     render_pass.set_pipeline(&render_pipeline);
-                    render_pass.set_vertex_buffer(1, instance_buffer.slice(..));
-                    render_pass.draw_model_instanced(
-                        &obj_model,
-                        0..instances.len() as u32,
-                        &camera_bind_group,
-                    );
-                    render_pass.set_vertex_buffer(1, instance_buffer2.slice(..));
-                    render_pass.draw_model_instanced(
-                        &obj_model2,
-                        0..instances2.len() as u32,
-                        &camera_bind_group,
-                    );
+                    render_pass.set_bind_group(1, &camera_bind_group, &[]);
 
                     render_pass.set_bind_group(0, &diffuse_bind_group, &[]);
                     render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
+                    render_pass.set_vertex_buffer(1, instance_buffer.slice(..));
                     render_pass.set_index_buffer(index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-                    render_pass.draw_indexed(0..num_indices, 0, 0..1);
+                    render_pass.draw_indexed(0..num_indices, 0, 0..instances.len() as _);
+
+
+                    render_pass.set_bind_group(0, &diffuse_bind_group2, &[]);
+                    render_pass.set_vertex_buffer(0, vertex_buffer2.slice(..));
+                    render_pass.set_vertex_buffer(1, instance_buffer2.slice(..));
+                    render_pass.set_index_buffer(index_buffer2.slice(..), wgpu::IndexFormat::Uint16);
+                    render_pass.draw_indexed(0..num_indices2, 0, 0..instances2.len() as _);
                     
                 }
 
