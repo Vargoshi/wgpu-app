@@ -7,8 +7,10 @@ mod instance;
 mod model;
 mod resources;
 mod texture;
-mod vertex;
 
+use std::time::Instant;
+
+use model::ModelVertex;
 use wgpu::util::DeviceExt;
 use winit::{
     event::{Event, VirtualKeyCode, WindowEvent, DeviceEvent},
@@ -22,6 +24,7 @@ use crate::{
     instance::Instance,
     model::{DrawModel, Vertex},
 };
+
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
@@ -37,6 +40,42 @@ pub enum CompareFunction {
     GreaterEqual = 7,
     Always = 8,
 }
+
+struct MapTiles {
+    map: Vec<i32>,
+    width: usize,
+    depth: usize
+}
+
+const VERTICES: &[ModelVertex] = &[
+    ModelVertex {
+        position: [-0.0868241, 0.49240386, 0.0],
+        tex_coords: [0.4131759, 0.00759614],
+        normal: [0.0, 0.0, 0.0]
+    }, // A
+    ModelVertex {
+        position: [-0.49513406, 0.06958647, 0.0],
+        tex_coords: [0.0048659444, 0.43041354],
+        normal: [0.0, 0.0, 0.0]
+    }, // B
+    ModelVertex {
+        position: [-0.21918549, -0.44939706, 0.0],
+        tex_coords: [0.28081453, 0.949397],
+        normal: [0.0, 0.0, 0.0]
+    }, // C
+    ModelVertex {
+        position: [0.35966998, -0.3473291, 0.0],
+        tex_coords: [0.85967, 0.84732914],
+        normal: [0.0, 0.0, 0.0]
+    }, // D
+    ModelVertex {
+        position: [0.44147372, 0.2347359, 0.0],
+        tex_coords: [0.9414737, 0.2652641],
+        normal: [0.0, 0.0, 0.0]
+    }, // E
+];
+
+const INDICES: &[u16] = &[0, 1, 4, 1, 2, 4, 2, 3, 4, /* padding */ 0];
 
 fn main() {
     env_logger::init(); // Necessary for logging within WGPU
@@ -72,6 +111,10 @@ fn main() {
     };
     surface.configure(&device, &config);
 
+    let diffuse_bytes = include_bytes!("happy-tree.png");
+        let diffuse_texture =
+            texture::Texture::from_bytes(&device, &queue, diffuse_bytes, "happy-tree.png").unwrap();
+
     let texture_bind_group_layout =
         device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             entries: &[
@@ -97,7 +140,23 @@ fn main() {
             label: Some("texture_bind_group_layout"),
         });
 
-        let mut camera = camera::Camera::new((5.0, 0.0, 6.0), cgmath::Deg(-90.0), cgmath::Deg(0.0));
+        let diffuse_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: &texture_bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::TextureView(&diffuse_texture.view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::Sampler(&diffuse_texture.sampler),
+                },
+            ],
+            label: Some("diffuse_bind_group"),
+        });
+
+
+        let mut camera = camera::Camera::new((5.0, 0.0, 6.0), cgmath::Deg(-90.0), cgmath::Deg(0.0)); //init position of the camera
         let mut projection = camera::Projection::new(config.width, config.height, cgmath::Deg(45.0), 0.1, 100.0);
         let mut camera_controller = camera_controller::CameraController::new(4.0,0.4);
     
@@ -108,6 +167,7 @@ fn main() {
             contents: bytemuck::cast_slice(&[camera_uniform]),
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
+
         let camera_bind_group_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
                 entries: &[wgpu::BindGroupLayoutEntry {
@@ -122,6 +182,7 @@ fn main() {
                 }],
                 label: Some("camera_bind_group_layout"),
             });
+
         let camera_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &camera_bind_group_layout,
             entries: &[wgpu::BindGroupEntry {
@@ -131,8 +192,51 @@ fn main() {
             label: Some("camera_bind_group"),
         });
 
-    let (instances, instance_buffer) = instance_init(&device);
-    let (instances2, instance_buffer2) = instance_init2(&device);
+        let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Vertex Buffer"),
+            contents: bytemuck::cast_slice(VERTICES),
+            usage: wgpu::BufferUsages::VERTEX,
+        });
+        let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Index Buffer"),
+            contents: bytemuck::cast_slice(INDICES),
+            usage: wgpu::BufferUsages::INDEX,
+        });
+        let num_indices = INDICES.len() as u32;
+
+        let walls = MapTiles{
+            map: vec![
+                2, 2, 2, 2, 2, 2, 2, 2, 
+                2, 0, 0, 2, 0, 0, 0, 2, 
+                2, 0, 0, 2, 0, 2, 0, 2, 
+                2, 2, 0, 2, 0, 0, 0, 2, 
+                2, 0, 0, 0, 0, 0, 0, 2, 
+                2, 0, 0, 0, 0, 2, 0, 2, 
+                2, 0, 0, 0, 0, 0, 0, 2, 
+                2, 2, 2, 2, 2, 2, 2, 2,
+            ],
+            width: 8,
+            depth: 8
+        };
+
+    let (instances, instance_buffer) = instance_init(&device, walls);
+
+    let floor = MapTiles{
+        map: vec![
+            0, 0, 0, 0, 0, 0, 0, 0, 
+            0, 1, 1, 0, 1, 1, 1, 0, 
+            0, 1, 1, 0, 1, 0, 1, 0, 
+            0, 0, 1, 0, 1, 1, 1, 0, 
+            0, 1, 1, 1, 1, 1, 1, 0, 
+            0, 1, 1, 1, 1, 0, 1, 0, 
+            0, 1, 1, 1, 1, 1, 1, 0, 
+            0, 0, 0, 0, 0, 0, 0, 0,
+        ],
+        width: 8,
+        depth: 8
+    };
+
+    let (instances2, instance_buffer2) = instance_init(&device, floor);
 
     let mut depth_texture =
         texture::Texture::create_depth_texture(&device, &config, "depth_texture");
@@ -151,13 +255,11 @@ fn main() {
         &config,
     );
 
-    let mut mouse_pos = (0.0, 0.0);
-
-    let mut last_render_time = instant::Instant::now();
+    let time = Instant::now();
+    let mut frame1 = 0;
 
     // Opens the window and starts processing events (although no events are handled yet)
     event_loop.run(move |event, _, control_flow| {
-        *control_flow = ControlFlow::Wait;
 
         match event {
 
@@ -165,10 +267,10 @@ fn main() {
                 event: DeviceEvent::MouseMotion{ delta, },
                 .. // We're not using device_id currently
             } => if camera_controller.mouse_pressed {
-                camera_controller.process_mouse(delta.0, delta.1)
+                camera_controller.process_mouse(delta.0, delta.1);
             }
 
-            Event::WindowEvent { window_id, event } if window_id == window.id() && !camera_controller.process_events(&event)=> {
+            Event::WindowEvent { window_id, event } if window_id == window.id() => {
                 camera_controller.process_events(&event);
                 match event {
                     WindowEvent::CloseRequested => {
@@ -205,17 +307,13 @@ fn main() {
                             *control_flow = ControlFlow::Exit
                         }
                     }
-
-                    WindowEvent::CursorMoved { position, .. } => {
-                        mouse_pos = (position.x, position.y);
-                    }
                     _ => {}
                 }
             }
             Event::RedrawRequested(_) => {
-                let now = instant::Instant::now();
-                let dt = now - last_render_time;
-                last_render_time = now;
+                let frame2 = time.elapsed().as_millis();
+                let dt = frame2-frame1;
+                frame1 = time.elapsed().as_millis();
                 
                 let output = surface.get_current_texture().unwrap();
                 let view = output
@@ -264,6 +362,12 @@ fn main() {
                         0..instances2.len() as u32,
                         &camera_bind_group,
                     );
+
+                    render_pass.set_bind_group(0, &diffuse_bind_group, &[]);
+                    render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
+                    render_pass.set_index_buffer(index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+                    render_pass.draw_indexed(0..num_indices, 0, 0..1);
+                    
                 }
 
                 camera_controller.update_camera(&mut camera, dt);
@@ -346,85 +450,19 @@ fn pipeline_init(
     render_pipeline
 }
 
-fn instance_init(device: &wgpu::Device) -> (Vec<Instance>, wgpu::Buffer) {
-    #[rustfmt::skip]
-    let height_map = vec![
-        1, 1, 1, 1, 1, 1, 1, 1, 
-        1, 0, 0, 1, 0, 0, 0, 1, 
-        1, 0, 0, 1, 0, 1, 0, 1, 
-        1, 1, 1, 1, 0, 0, 0, 1, 
-        1, 0, 0, 0, 0, 0, 0, 1, 
-        1, 0, 0, 0, 0, 1, 0, 1, 
-        1, 0, 0, 0, 0, 0, 0, 1, 
-        1, 1, 1, 1, 1, 1, 1, 1,
-    ];
-
-    let map_block_width = 8;
-    let map_block_depth = 8;
-
+fn instance_init(device: &wgpu::Device, tiles: MapTiles) -> (Vec<Instance>, wgpu::Buffer) {
     const BLOCK_SIZE: f32 = 2.0;
-    let instances = (0..map_block_depth)
+    let instances = (0..tiles.depth)
         .flat_map(|z| {
-            (0..map_block_width)
+            (0..tiles.width)
                 .map(move |x| (x, z))
-                .flat_map(|(x, z)| (0..height_map[z * map_block_width + x]).map(move |y| (x, y, z)))
+                .flat_map(|(x, z)| (0..tiles.map[z * tiles.width + x]).map(move |y| (x, y, z)))
         })
         .map(|(x, y, z)| {
             (
-                BLOCK_SIZE * x as f32,
+                1.0 + BLOCK_SIZE * x as f32,
                 BLOCK_SIZE * y as f32,
-                BLOCK_SIZE * z as f32,
-            )
-        })
-        .map(|(x, y, z)| Instance {
-            position: cgmath::Vector3 { x, y, z },
-            rotation: cgmath::Quaternion::from_axis_angle(
-                cgmath::Vector3::unit_z(),
-                cgmath::Deg(0.0),
-            ),
-        })
-        .collect::<Vec<_>>();
-
-    let instance_data = instances
-        .iter()
-        .map(instance::Instance::to_raw)
-        .collect::<Vec<_>>();
-    let instance_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-        label: Some("Instance Buffer"),
-        contents: bytemuck::cast_slice(&instance_data),
-        usage: wgpu::BufferUsages::VERTEX,
-    });
-    (instances, instance_buffer)
-}
-
-fn instance_init2(device: &wgpu::Device) -> (Vec<Instance>, wgpu::Buffer) {
-    #[rustfmt::skip]
-    let height_map = vec![
-        0, 0, 0, 0, 0, 0, 0, 0, 
-        0, 1, 1, 0, 1, 1, 1, 0, 
-        0, 1, 1, 0, 1, 0, 1, 0, 
-        0, 0, 0, 0, 1, 1, 1, 0, 
-        0, 1, 1, 1, 1, 1, 1, 0, 
-        0, 1, 1, 1, 1, 0, 1, 0, 
-        0, 1, 1, 1, 1, 1, 1, 0, 
-        0, 0, 0, 0, 0, 0, 0, 0,
-    ];
-
-    let map_block_width = 8;
-    let map_block_depth = 8;
-
-    const BLOCK_SIZE: f32 = 2.0;
-    let instances = (0..map_block_depth)
-        .flat_map(|z| {
-            (0..map_block_width)
-                .map(move |x| (x, z))
-                .flat_map(|(x, z)| (0..height_map[z * map_block_width + x]).map(move |y| (x, y, z)))
-        })
-        .map(|(x, y, z)| {
-            (
-                BLOCK_SIZE * x as f32,
-                BLOCK_SIZE * y as f32,
-                BLOCK_SIZE * z as f32,
+                1.0 + BLOCK_SIZE * z as f32,
             )
         })
         .map(|(x, y, z)| Instance {

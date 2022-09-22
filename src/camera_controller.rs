@@ -1,7 +1,6 @@
-
 use cgmath::*;
 use std::f32::consts::FRAC_PI_2;
-use std::time::Duration;
+
 use winit::dpi::PhysicalPosition;
 use winit::event::*;
 
@@ -9,13 +8,12 @@ use crate::camera;
 
 const SAFE_FRAC_PI_2: f32 = FRAC_PI_2 - 0.0001;
 
-
 #[derive(Debug)]
 pub(crate) struct CameraController {
-    amount_left: f32,
-    amount_right: f32,
-    amount_forward: f32,
-    amount_backward: f32,
+    pub amount_left: f32,
+    pub amount_right: f32,
+    pub amount_forward: f32,
+    pub amount_backward: f32,
     amount_up: f32,
     amount_down: f32,
     rotate_horizontal: f32,
@@ -23,7 +21,7 @@ pub(crate) struct CameraController {
     scroll: f32,
     speed: f32,
     sensitivity: f32,
-    pub mouse_pressed: bool
+    pub mouse_pressed: bool,
 }
 
 impl CameraController {
@@ -40,7 +38,7 @@ impl CameraController {
             scroll: 0.0,
             speed,
             sensitivity,
-            mouse_pressed: false
+            mouse_pressed: false,
         }
     }
 
@@ -117,15 +115,92 @@ impl CameraController {
         };
     }
 
-    pub(crate) fn update_camera(&mut self, camera: &mut camera::Camera, dt: Duration) {
-        let dt = dt.as_secs_f32();
+    pub(crate) fn update_camera(&mut self, camera: &mut camera::Camera, dt: u128) {
+        let dt = dt as f32 * 0.001;
 
         // Move forward/backward and left/right
         let (yaw_sin, yaw_cos) = camera.yaw.0.sin_cos();
-        let forward = Vector3::new(yaw_cos, 0.0, yaw_sin).normalize();
-        let right = Vector3::new(-yaw_sin, 0.0, yaw_cos).normalize();
-        camera.position += forward * (self.amount_forward - self.amount_backward) * self.speed * dt;
-        camera.position += right * (self.amount_right - self.amount_left) * self.speed * dt;
+        //let forward = Vector3::new(yaw_cos, 0.0, yaw_sin).normalize();
+        //let right = Vector3::new(-yaw_sin, 0.0, yaw_cos).normalize();
+        //camera.position += forward * (self.amount_forward - self.amount_backward) * self.speed * dt;
+        //camera.position += right * (self.amount_right - self.amount_left) * self.speed * dt;
+
+        let tiles = vec![
+            2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 2, 0, 0, 0, 2, 2, 0, 0, 2, 0, 2, 0, 2, 2, 2, 0, 2, 0,
+            0, 0, 2, 2, 0, 0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 0, 2, 0, 2, 2, 0, 0, 0, 0, 0, 0, 2, 2, 2,
+            2, 2, 2, 2, 2, 2,
+        ];
+        let mapwidth = 8;
+
+        dbg!(camera.position);
+        dbg!(camera.yaw);
+
+        let x_offset = if camera.yaw.cos() < 0.0 { -1 } else { 1 };
+
+        let z_offset = if camera.yaw.sin() < 0.0 { -1 } else { 1 };
+
+        let strafe_x_offset = if (camera.yaw + Rad(SAFE_FRAC_PI_2)).cos() < 0.0 {
+            -1
+        } else {
+            1
+        };
+
+        let strafe_z_offset = if (camera.yaw + Rad(SAFE_FRAC_PI_2)).sin() < 0.0 {
+            -1
+        } else {
+            1
+        };
+
+        let ipx = camera.position.x / 2.0;
+        let ipx_add_xo = (camera.position.x as i32 + x_offset) / 2;
+        let ipx_sub_xo = (camera.position.x as i32 - x_offset) / 2;
+        let strafe_ipx_add_xo = (camera.position.x as i32 + strafe_x_offset) / 2;
+        let strafe_ipx_sub_xo = (camera.position.x as i32 - strafe_x_offset) / 2;
+        let ipz = camera.position.z / 2.0;
+        let ipz_add_yo = (camera.position.z as i32 + z_offset) / 2;
+        let ipz_sub_yo = (camera.position.z as i32 - z_offset) / 2;
+        let strafe_ipz_add_yo = (camera.position.z as i32 + strafe_z_offset) / 2;
+        let strafe_ipz_sub_yo = (camera.position.z as i32 - strafe_z_offset) / 2;
+
+        if self.amount_forward > 0.0 {
+            if tiles[(ipz as i32 * mapwidth + ipx_add_xo) as usize] == 0 {
+                camera.position.x += self.amount_forward * camera.yaw.cos() * self.speed * dt;
+            }
+
+            if tiles[(ipz_add_yo * mapwidth + ipx as i32) as usize] == 0 {
+                camera.position.z += self.amount_forward * camera.yaw.sin() * self.speed * dt;
+            }
+        }
+
+        if self.amount_backward > 0.0 {
+            if tiles[(ipz as i32 * mapwidth + ipx_sub_xo) as usize] == 0 {
+                camera.position.x -= self.amount_backward * camera.yaw.cos() * self.speed * dt;
+            }
+
+            if tiles[(ipz_sub_yo * mapwidth + ipx as i32) as usize] == 0 {
+                camera.position.z -= self.amount_backward * camera.yaw.sin() * self.speed * dt;
+            }
+        }
+
+        if self.amount_right > 0.0 {
+            if tiles[(ipz as i32 * mapwidth + strafe_ipx_add_xo) as usize] == 0 {
+                camera.position.x -= self.amount_right * camera.yaw.sin() * self.speed * dt;
+            }
+
+            if tiles[(strafe_ipz_add_yo * mapwidth + ipx as i32) as usize] == 0 {
+                camera.position.z += self.amount_right * camera.yaw.cos() * self.speed * dt;
+            }
+        }
+
+        if self.amount_left > 0.0 {
+            if tiles[(ipz as i32 * mapwidth + strafe_ipx_sub_xo) as usize] == 0 {
+                camera.position.x += self.amount_left * camera.yaw.sin() * self.speed * dt;
+            }
+
+            if tiles[(strafe_ipz_sub_yo * mapwidth + ipx as i32) as usize] == 0 {
+                camera.position.z -= self.amount_left * camera.yaw.cos() * self.speed * dt;
+            }
+        }
 
         // Move in/out (aka. "zoom")
         // Note: this isn't an actual zoom. The camera's position
@@ -156,6 +231,12 @@ impl CameraController {
             camera.pitch = -Rad(SAFE_FRAC_PI_2);
         } else if camera.pitch > Rad(SAFE_FRAC_PI_2) {
             camera.pitch = Rad(SAFE_FRAC_PI_2);
+        }
+
+        if camera.yaw < -Rad(SAFE_FRAC_PI_2 * 2.0) {
+            camera.yaw += Rad(SAFE_FRAC_PI_2 * 4.0);
+        } else if camera.yaw > Rad(SAFE_FRAC_PI_2 * 2.0) {
+            camera.yaw -= Rad(SAFE_FRAC_PI_2 * 4.0);
         }
     }
 }
