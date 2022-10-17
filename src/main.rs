@@ -1,6 +1,7 @@
 #![deny(clippy::all)]
 
 mod camera;
+mod collision_detection;
 mod camera_controller;
 mod camera_uniform;
 mod instance;
@@ -530,7 +531,7 @@ fn main() {
                     
                 }
 
-                camera_controller.update_camera(&mut camera, dt);
+                camera_controller.update_camera(&mut camera, dt, instances.as_slice());
                 camera_uniform.update_view_proj(&camera, &projection);
                 queue.write_buffer(&camera_buffer, 0, bytemuck::cast_slice(&[camera_uniform]));
 

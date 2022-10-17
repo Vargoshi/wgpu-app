@@ -5,6 +5,8 @@ use winit::dpi::PhysicalPosition;
 use winit::event::*;
 
 use crate::camera;
+use crate::collision_detection::CollisionDetection;
+use crate::instance::Instance;
 
 const SAFE_FRAC_PI_2: f32 = FRAC_PI_2 - 0.0001;
 
@@ -115,102 +117,88 @@ impl CameraController {
         };
     }
 
-    pub(crate) fn update_camera(&mut self, camera: &mut camera::Camera, dt: u128) {
+    pub(crate) fn update_camera(
+        &mut self,
+        camera: &mut camera::Camera,
+        dt: u128,
+        instances: &[Instance],
+    ) {
         let dt = dt as f32 * 0.001;
 
-        // Move forward/backward and left/right
-        let (yaw_sin, yaw_cos) = camera.yaw.0.sin_cos();
-        //let forward = Vector3::new(yaw_cos, 0.0, yaw_sin).normalize();
-        //let right = Vector3::new(-yaw_sin, 0.0, yaw_cos).normalize();
-        //camera.position += forward * (self.amount_forward - self.amount_backward) * self.speed * dt;
-        //camera.position += right * (self.amount_right - self.amount_left) * self.speed * dt;
-
-        let tiles = vec![
-            2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 2, 0, 0, 0, 2, 2, 0, 0, 2, 0, 2, 0, 2, 2, 2, 0, 2, 0,
-            0, 0, 2, 2, 0, 0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 0, 2, 0, 2, 2, 0, 0, 0, 0, 0, 0, 2, 2, 2,
-            2, 2, 2, 2, 2, 2,
-        ];
-        let mapwidth = 8;
-
-        // dbg!(camera.position);
-        // dbg!(camera.yaw);
-
-        let x_offset = if camera.yaw.cos() < 0.0 { -1 } else { 1 };
-
-        let z_offset = if camera.yaw.sin() < 0.0 { -1 } else { 1 };
-
-        let strafe_x_offset = if (camera.yaw + Rad(SAFE_FRAC_PI_2)).cos() < 0.0 {
-            -1
-        } else {
-            1
+        let mut collision = CollisionDetection {
+            left: 0.0,
+            right: 0.0,
+            forward: 0.0,
+            backward: 0.0,
+            up: 0.0,
+            down: 0.0,
         };
 
-        let strafe_z_offset = if (camera.yaw + Rad(SAFE_FRAC_PI_2)).sin() < 0.0 {
-            -1
-        } else {
-            1
-        };
+        collision.detect(camera, instances);
 
-        let ipx = camera.position.x / 2.0;
-        let ipx_add_xo = (camera.position.x as i32 + x_offset) / 2;
-        let ipx_sub_xo = (camera.position.x as i32 - x_offset) / 2;
-        let strafe_ipx_add_xo = (camera.position.x as i32 + strafe_x_offset) / 2;
-        let strafe_ipx_sub_xo = (camera.position.x as i32 - strafe_x_offset) / 2;
-        let ipz = camera.position.z / 2.0;
-        let ipz_add_yo = (camera.position.z as i32 + z_offset) / 2;
-        let ipz_sub_yo = (camera.position.z as i32 - z_offset) / 2;
-        let strafe_ipz_add_yo = (camera.position.z as i32 + strafe_z_offset) / 2;
-        let strafe_ipz_sub_yo = (camera.position.z as i32 - strafe_z_offset) / 2;
+        let move_in_x_forward = self.amount_forward * camera.yaw.cos() * self.speed * dt;
 
-        if self.amount_forward > 0.0 {
-            if tiles[(ipz as i32 * mapwidth + ipx_add_xo) as usize] == 0 {
-                camera.position.x += self.amount_forward * camera.yaw.cos() * self.speed * dt;
-            }
-
-            if tiles[(ipz_add_yo * mapwidth + ipx as i32) as usize] == 0 {
-                camera.position.z += self.amount_forward * camera.yaw.sin() * self.speed * dt;
-            }
+        if ((move_in_x_forward) < 0.0 && collision.left < 1.0)
+            || ((move_in_x_forward) > 0.0 && collision.right < 1.0)
+        {
+            camera.position.x += move_in_x_forward;
         }
 
-        if self.amount_backward > 0.0 {
-            if tiles[(ipz as i32 * mapwidth + ipx_sub_xo) as usize] == 0 {
-                camera.position.x -= self.amount_backward * camera.yaw.cos() * self.speed * dt;
-            }
+        let move_in_z_forward = self.amount_forward * camera.yaw.sin() * self.speed * dt;
 
-            if tiles[(ipz_sub_yo * mapwidth + ipx as i32) as usize] == 0 {
-                camera.position.z -= self.amount_backward * camera.yaw.sin() * self.speed * dt;
-            }
+        if ((move_in_z_forward) < 0.0 && collision.forward < 1.0)
+            || ((move_in_z_forward) > 0.0 && collision.backward < 1.0)
+        {
+            camera.position.z += move_in_z_forward;
         }
 
-        if self.amount_right > 0.0 {
-            if tiles[(ipz as i32 * mapwidth + strafe_ipx_add_xo) as usize] == 0 {
-                camera.position.x -= self.amount_right * camera.yaw.sin() * self.speed * dt;
-            }
+        let move_in_x_backward = self.amount_backward * camera.yaw.cos() * self.speed * dt;
 
-            if tiles[(strafe_ipz_add_yo * mapwidth + ipx as i32) as usize] == 0 {
-                camera.position.z += self.amount_right * camera.yaw.cos() * self.speed * dt;
-            }
+        if ((move_in_x_backward) > 0.0 && collision.left < 1.0)
+            || ((move_in_x_backward) < 0.0 && collision.right < 1.0)
+        {
+            camera.position.x -= move_in_x_backward;
         }
 
-        if self.amount_left > 0.0 {
-            if tiles[(ipz as i32 * mapwidth + strafe_ipx_sub_xo) as usize] == 0 {
-                camera.position.x += self.amount_left * camera.yaw.sin() * self.speed * dt;
-            }
+        let move_in_z_backward = self.amount_backward * camera.yaw.sin() * self.speed * dt;
 
-            if tiles[(strafe_ipz_sub_yo * mapwidth + ipx as i32) as usize] == 0 {
-                camera.position.z -= self.amount_left * camera.yaw.cos() * self.speed * dt;
-            }
+        if ((move_in_z_backward) > 0.0 && collision.forward < 1.0)
+            || ((move_in_z_backward) < 0.0 && collision.backward < 1.0)
+        {
+            camera.position.z -= move_in_z_backward;
         }
 
-        // Move in/out (aka. "zoom")
-        // Note: this isn't an actual zoom. The camera's position
-        // changes when zooming. I've added this to make it easier
-        // to get closer to an object you want to focus on.
-        let (pitch_sin, pitch_cos) = camera.pitch.0.sin_cos();
-        let scrollward =
-            Vector3::new(pitch_cos * yaw_cos, pitch_sin, pitch_cos * yaw_sin).normalize();
-        camera.position += scrollward * self.scroll * self.speed * self.sensitivity * dt;
-        self.scroll = 0.0;
+        let move_in_x_right = self.amount_right * camera.yaw.sin() * self.speed * dt;
+
+        if ((move_in_x_right) > 0.0 && collision.left < 1.0)
+            || ((move_in_x_right) < 0.0 && collision.right < 1.0)
+        {
+            camera.position.x -= move_in_x_right;
+        }
+
+        let move_in_z_right = self.amount_right * camera.yaw.cos() * self.speed * dt;
+
+        if ((move_in_z_right) < 0.0 && collision.forward < 1.0)
+            || ((move_in_z_right) > 0.0 && collision.backward < 1.0)
+        {
+            camera.position.z += move_in_z_right;
+        }
+
+        let move_in_x_left = self.amount_left * camera.yaw.sin() * self.speed * dt;
+
+        if ((move_in_x_left) < 0.0 && collision.left < 1.0)
+            || ((move_in_x_left) > 0.0 && collision.right < 1.0)
+        {
+            camera.position.x += move_in_x_left;
+        }
+
+        let move_in_z_left = self.amount_left * camera.yaw.cos() * self.speed * dt;
+
+        if ((move_in_z_left) > 0.0 && collision.forward < 1.0)
+            || ((move_in_z_left) < 0.0 && collision.backward < 1.0)
+        {
+            camera.position.z -= move_in_z_left;
+        }
 
         // Move up/down. Since we don't use roll, we can just
         // modify the y coordinate directly.
