@@ -12,35 +12,45 @@ const SAFE_FRAC_PI_2: f32 = FRAC_PI_2 - 0.0001;
 
 #[derive(Debug)]
 pub(crate) struct CameraController {
-    pub amount_left: f32,
-    pub amount_right: f32,
-    pub amount_forward: f32,
-    pub amount_backward: f32,
-    amount_up: f32,
-    amount_down: f32,
+    pub press_left: f32,
+    pub press_right: f32,
+    pub press_forward: f32,
+    pub press_backward: f32,
+    press_up: f32,
+    press_down: f32,
     rotate_horizontal: f32,
     rotate_vertical: f32,
     scroll: f32,
     speed: f32,
     sensitivity: f32,
     pub mouse_pressed: bool,
+    forward_vel: f32,
+    backward_vel: f32,
+    right_vel: f32,
+    left_vel: f32,
+    jump_vel: f32,
 }
 
 impl CameraController {
     pub(crate) fn new(speed: f32, sensitivity: f32) -> Self {
         Self {
-            amount_left: 0.0,
-            amount_right: 0.0,
-            amount_forward: 0.0,
-            amount_backward: 0.0,
-            amount_up: 0.0,
-            amount_down: 0.0,
+            press_left: 0.0,
+            press_right: 0.0,
+            press_forward: 0.0,
+            press_backward: 0.0,
+            press_up: 0.0,
+            press_down: 0.0,
             rotate_horizontal: 0.0,
             rotate_vertical: 0.0,
             scroll: 0.0,
             speed,
             sensitivity,
             mouse_pressed: false,
+            forward_vel: 0.0,
+            backward_vel: 0.0,
+            right_vel: 0.0,
+            left_vel: 0.0,
+            jump_vel: 0.0,
         }
     }
 
@@ -55,34 +65,30 @@ impl CameraController {
                     },
                 ..
             } => {
-                let amount = if state == &ElementState::Pressed {
+                let press = if state == &ElementState::Pressed {
                     1.0
                 } else {
                     0.0
                 };
                 match keycode {
                     VirtualKeyCode::W | VirtualKeyCode::Up => {
-                        self.amount_forward = amount;
+                        self.press_forward = press;
                         true
                     }
                     VirtualKeyCode::A | VirtualKeyCode::Left => {
-                        self.amount_left = amount;
+                        self.press_left = press;
                         true
                     }
                     VirtualKeyCode::S | VirtualKeyCode::Down => {
-                        self.amount_backward = amount;
+                        self.press_backward = press;
                         true
                     }
                     VirtualKeyCode::D | VirtualKeyCode::Right => {
-                        self.amount_right = amount;
+                        self.press_right = press;
                         true
                     }
                     VirtualKeyCode::Space => {
-                        self.amount_up = amount;
-                        true
-                    }
-                    VirtualKeyCode::LShift => {
-                        self.amount_down = amount;
+                        self.press_up = press;
                         true
                     }
                     _ => false,
@@ -136,7 +142,27 @@ impl CameraController {
 
         collision.detect(camera, instances);
 
-        let move_in_x_forward = self.amount_forward * camera.yaw.cos() * self.speed * dt;
+        if self.press_forward > 0.0 && self.forward_vel < 1.5 {
+            self.forward_vel += 0.5;
+        }
+
+        if self.press_backward > 0.0 && self.backward_vel < 1.5 {
+            self.backward_vel += 0.5;
+        }
+
+        if self.press_right > 0.0 && self.right_vel < 1.5 {
+            self.right_vel += 0.5;
+        }
+
+        if self.press_left > 0.0 && self.left_vel < 1.5 {
+            self.left_vel += 0.5;
+        }
+
+        if self.press_up > 0.0 && camera.position.y <= 0.0 {
+            self.jump_vel += 1.5;
+        }
+
+        let move_in_x_forward = self.forward_vel * camera.yaw.cos() * self.speed * dt;
 
         if ((move_in_x_forward) < 0.0 && collision.left < 1.0)
             || ((move_in_x_forward) > 0.0 && collision.right < 1.0)
@@ -144,7 +170,7 @@ impl CameraController {
             camera.position.x += move_in_x_forward;
         }
 
-        let move_in_z_forward = self.amount_forward * camera.yaw.sin() * self.speed * dt;
+        let move_in_z_forward = self.forward_vel * camera.yaw.sin() * self.speed * dt;
 
         if ((move_in_z_forward) < 0.0 && collision.forward < 1.0)
             || ((move_in_z_forward) > 0.0 && collision.backward < 1.0)
@@ -152,7 +178,7 @@ impl CameraController {
             camera.position.z += move_in_z_forward;
         }
 
-        let move_in_x_backward = self.amount_backward * camera.yaw.cos() * self.speed * dt;
+        let move_in_x_backward = self.backward_vel * camera.yaw.cos() * self.speed * dt;
 
         if ((move_in_x_backward) > 0.0 && collision.left < 1.0)
             || ((move_in_x_backward) < 0.0 && collision.right < 1.0)
@@ -160,7 +186,7 @@ impl CameraController {
             camera.position.x -= move_in_x_backward;
         }
 
-        let move_in_z_backward = self.amount_backward * camera.yaw.sin() * self.speed * dt;
+        let move_in_z_backward = self.backward_vel * camera.yaw.sin() * self.speed * dt;
 
         if ((move_in_z_backward) > 0.0 && collision.forward < 1.0)
             || ((move_in_z_backward) < 0.0 && collision.backward < 1.0)
@@ -168,7 +194,7 @@ impl CameraController {
             camera.position.z -= move_in_z_backward;
         }
 
-        let move_in_x_right = self.amount_right * camera.yaw.sin() * self.speed * dt;
+        let move_in_x_right = self.right_vel * camera.yaw.sin() * self.speed * dt;
 
         if ((move_in_x_right) > 0.0 && collision.left < 1.0)
             || ((move_in_x_right) < 0.0 && collision.right < 1.0)
@@ -176,7 +202,7 @@ impl CameraController {
             camera.position.x -= move_in_x_right;
         }
 
-        let move_in_z_right = self.amount_right * camera.yaw.cos() * self.speed * dt;
+        let move_in_z_right = self.right_vel * camera.yaw.cos() * self.speed * dt;
 
         if ((move_in_z_right) < 0.0 && collision.forward < 1.0)
             || ((move_in_z_right) > 0.0 && collision.backward < 1.0)
@@ -184,7 +210,7 @@ impl CameraController {
             camera.position.z += move_in_z_right;
         }
 
-        let move_in_x_left = self.amount_left * camera.yaw.sin() * self.speed * dt;
+        let move_in_x_left = self.left_vel * camera.yaw.sin() * self.speed * dt;
 
         if ((move_in_x_left) < 0.0 && collision.left < 1.0)
             || ((move_in_x_left) > 0.0 && collision.right < 1.0)
@@ -192,7 +218,7 @@ impl CameraController {
             camera.position.x += move_in_x_left;
         }
 
-        let move_in_z_left = self.amount_left * camera.yaw.cos() * self.speed * dt;
+        let move_in_z_left = self.left_vel * camera.yaw.cos() * self.speed * dt;
 
         if ((move_in_z_left) > 0.0 && collision.forward < 1.0)
             || ((move_in_z_left) < 0.0 && collision.backward < 1.0)
@@ -200,9 +226,32 @@ impl CameraController {
             camera.position.z -= move_in_z_left;
         }
 
+        if self.forward_vel > 0.0 {
+            self.forward_vel -= 0.1;
+        }
+
+        if self.backward_vel > 0.0 {
+            self.backward_vel -= 0.1;
+        }
+
+        if self.right_vel > 0.0 {
+            self.right_vel -= 0.1;
+        }
+
+        if self.left_vel > 0.0 {
+            self.left_vel -= 0.1;
+        }
+
         // Move up/down. Since we don't use roll, we can just
         // modify the y coordinate directly.
-        camera.position.y += (self.amount_up - self.amount_down) * self.speed * dt;
+        //camera.position.y += (self.amount_up - self.amount_down) * self.speed * dt;
+        camera.position.y += self.jump_vel * self.speed * dt;
+
+        if camera.position.y > 0.0 {
+            self.jump_vel -= 0.05;
+        } else if camera.position.y < 0.1 {
+            self.jump_vel = 0.0;
+        }
 
         // Rotate
         camera.yaw += Rad(self.rotate_horizontal) * self.sensitivity * dt;

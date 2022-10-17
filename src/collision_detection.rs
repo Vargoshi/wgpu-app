@@ -14,8 +14,8 @@ impl CollisionDetection {
         for instance in instances {
             if (camera.position.x < (instance.position.x + 1.5))
                 && (camera.position.x > (instance.position.x + 1.0))
-                && (camera.position.z < (instance.position.z + 1.5))
-                && (camera.position.z > (instance.position.z - 1.5))
+                && (camera.position.z < (instance.position.z + 1.3))
+                && (camera.position.z > (instance.position.z - 1.3))
             {
                 self.left = 1.0;
                 break;
@@ -27,8 +27,8 @@ impl CollisionDetection {
         for instance in instances {
             if (camera.position.x < (instance.position.x - 1.0))
                 && (camera.position.x > (instance.position.x - 1.5))
-                && (camera.position.z < (instance.position.z + 1.5))
-                && (camera.position.z > (instance.position.z - 1.5))
+                && (camera.position.z < (instance.position.z + 1.3))
+                && (camera.position.z > (instance.position.z - 1.3))
             {
                 self.right = 1.0;
                 break;
@@ -38,8 +38,8 @@ impl CollisionDetection {
         }
 
         for instance in instances {
-            if (camera.position.x < (instance.position.x + 1.5))
-                && (camera.position.x > (instance.position.x - 1.5))
+            if (camera.position.x < (instance.position.x + 1.3))
+                && (camera.position.x > (instance.position.x - 1.3))
                 && (camera.position.z < (instance.position.z + 1.5))
                 && (camera.position.z > (instance.position.z + 1.0))
             {
@@ -51,8 +51,8 @@ impl CollisionDetection {
         }
 
         for instance in instances {
-            if (camera.position.x < (instance.position.x + 1.5))
-                && (camera.position.x > (instance.position.x - 1.5))
+            if (camera.position.x < (instance.position.x + 1.3))
+                && (camera.position.x > (instance.position.x - 1.3))
                 && (camera.position.z < (instance.position.z - 1.0))
                 && (camera.position.z > (instance.position.z - 1.5))
             {
