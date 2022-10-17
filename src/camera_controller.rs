@@ -12,12 +12,12 @@ const SAFE_FRAC_PI_2: f32 = FRAC_PI_2 - 0.0001;
 
 #[derive(Debug)]
 pub(crate) struct CameraController {
-    pub press_left: f32,
-    pub press_right: f32,
-    pub press_forward: f32,
-    pub press_backward: f32,
-    press_up: f32,
-    press_down: f32,
+    pub press_left: bool,
+    pub press_right: bool,
+    pub press_forward: bool,
+    pub press_backward: bool,
+    press_up: bool,
+    press_down: bool,
     rotate_horizontal: f32,
     rotate_vertical: f32,
     scroll: f32,
@@ -29,17 +29,18 @@ pub(crate) struct CameraController {
     right_vel: f32,
     left_vel: f32,
     jump_vel: f32,
+    on_floor: bool,
 }
 
 impl CameraController {
     pub(crate) fn new(speed: f32, sensitivity: f32) -> Self {
         Self {
-            press_left: 0.0,
-            press_right: 0.0,
-            press_forward: 0.0,
-            press_backward: 0.0,
-            press_up: 0.0,
-            press_down: 0.0,
+            press_left: false,
+            press_right: false,
+            press_forward: false,
+            press_backward: false,
+            press_up: false,
+            press_down: false,
             rotate_horizontal: 0.0,
             rotate_vertical: 0.0,
             scroll: 0.0,
@@ -51,6 +52,7 @@ impl CameraController {
             right_vel: 0.0,
             left_vel: 0.0,
             jump_vel: 0.0,
+            on_floor: false,
         }
     }
 
@@ -65,11 +67,7 @@ impl CameraController {
                     },
                 ..
             } => {
-                let press = if state == &ElementState::Pressed {
-                    1.0
-                } else {
-                    0.0
-                };
+                let press = state == &ElementState::Pressed;
                 match keycode {
                     VirtualKeyCode::W | VirtualKeyCode::Up => {
                         self.press_forward = press;
@@ -132,96 +130,104 @@ impl CameraController {
         let dt = dt as f32 * 0.001;
 
         let mut collision = CollisionDetection {
-            left: 0.0,
-            right: 0.0,
-            forward: 0.0,
-            backward: 0.0,
-            up: 0.0,
-            down: 0.0,
+            left: false,
+            right: false,
+            forward: false,
+            backward: false,
+            up: false,
+            down: false,
         };
 
         collision.detect(camera, instances);
 
-        if self.press_forward > 0.0 && self.forward_vel < 1.5 {
+        if collision.up {
+            self.on_floor = true;
+            self.jump_vel = 0.0;
+        } else {
+            self.on_floor = false;
+        }
+
+        if self.press_forward && self.forward_vel < 1.5 {
             self.forward_vel += 0.5;
         }
 
-        if self.press_backward > 0.0 && self.backward_vel < 1.5 {
+        if self.press_backward && self.backward_vel < 1.5 {
             self.backward_vel += 0.5;
         }
 
-        if self.press_right > 0.0 && self.right_vel < 1.5 {
+        if self.press_right && self.right_vel < 1.5 {
             self.right_vel += 0.5;
         }
 
-        if self.press_left > 0.0 && self.left_vel < 1.5 {
+        if self.press_left && self.left_vel < 1.5 {
             self.left_vel += 0.5;
         }
 
-        if self.press_up > 0.0 && camera.position.y <= 0.0 {
-            self.jump_vel += 1.5;
+        if self.press_up && self.on_floor {
+            self.on_floor = false;
+            self.jump_vel += 2.0;
         }
 
         let move_in_x_forward = self.forward_vel * camera.yaw.cos() * self.speed * dt;
 
-        if ((move_in_x_forward) < 0.0 && collision.left < 1.0)
-            || ((move_in_x_forward) > 0.0 && collision.right < 1.0)
+        if ((move_in_x_forward) < 0.0 && !collision.left)
+            || ((move_in_x_forward) > 0.0 && !collision.right)
         {
             camera.position.x += move_in_x_forward;
         }
 
         let move_in_z_forward = self.forward_vel * camera.yaw.sin() * self.speed * dt;
 
-        if ((move_in_z_forward) < 0.0 && collision.forward < 1.0)
-            || ((move_in_z_forward) > 0.0 && collision.backward < 1.0)
+        if ((move_in_z_forward) < 0.0 && !collision.forward)
+            || ((move_in_z_forward) > 0.0 && !collision.backward)
         {
             camera.position.z += move_in_z_forward;
         }
 
         let move_in_x_backward = self.backward_vel * camera.yaw.cos() * self.speed * dt;
 
-        if ((move_in_x_backward) > 0.0 && collision.left < 1.0)
-            || ((move_in_x_backward) < 0.0 && collision.right < 1.0)
+        if ((move_in_x_backward) > 0.0 && !collision.left)
+            || ((move_in_x_backward) < 0.0 && !collision.right)
         {
             camera.position.x -= move_in_x_backward;
         }
 
         let move_in_z_backward = self.backward_vel * camera.yaw.sin() * self.speed * dt;
 
-        if ((move_in_z_backward) > 0.0 && collision.forward < 1.0)
-            || ((move_in_z_backward) < 0.0 && collision.backward < 1.0)
+        if ((move_in_z_backward) > 0.0 && !collision.forward)
+            || ((move_in_z_backward) < 0.0 && !collision.backward)
         {
             camera.position.z -= move_in_z_backward;
         }
 
         let move_in_x_right = self.right_vel * camera.yaw.sin() * self.speed * dt;
 
-        if ((move_in_x_right) > 0.0 && collision.left < 1.0)
-            || ((move_in_x_right) < 0.0 && collision.right < 1.0)
+        if ((move_in_x_right) > 0.0 && !collision.left)
+            || ((move_in_x_right) < 0.0 && !collision.right)
         {
             camera.position.x -= move_in_x_right;
         }
 
         let move_in_z_right = self.right_vel * camera.yaw.cos() * self.speed * dt;
 
-        if ((move_in_z_right) < 0.0 && collision.forward < 1.0)
-            || ((move_in_z_right) > 0.0 && collision.backward < 1.0)
+        if ((move_in_z_right) < 0.0 && !collision.forward)
+            || ((move_in_z_right) > 0.0 && !collision.backward)
         {
             camera.position.z += move_in_z_right;
         }
 
         let move_in_x_left = self.left_vel * camera.yaw.sin() * self.speed * dt;
 
-        if ((move_in_x_left) < 0.0 && collision.left < 1.0)
-            || ((move_in_x_left) > 0.0 && collision.right < 1.0)
+        if ((move_in_x_left) < 0.0 && !collision.left)
+            || ((move_in_x_left) > 0.0 && !collision.right)
         {
             camera.position.x += move_in_x_left;
         }
 
         let move_in_z_left = self.left_vel * camera.yaw.cos() * self.speed * dt;
 
-        if ((move_in_z_left) > 0.0 && collision.forward < 1.0)
-            || ((move_in_z_left) < 0.0 && collision.backward < 1.0)
+        if ((move_in_z_left) > 0.0 && !collision.forward)
+            || ((move_in_z_left) < 0.0 && !collision.backward)
         {
             camera.position.z -= move_in_z_left;
         }
@@ -242,16 +248,14 @@ impl CameraController {
             self.left_vel -= 0.1;
         }
 
+        if !self.on_floor {
+            self.jump_vel -= 0.05;
+        }
+
         // Move up/down. Since we don't use roll, we can just
         // modify the y coordinate directly.
         //camera.position.y += (self.amount_up - self.amount_down) * self.speed * dt;
         camera.position.y += self.jump_vel * self.speed * dt;
-
-        if camera.position.y > 0.0 {
-            self.jump_vel -= 0.05;
-        } else if camera.position.y < 0.1 {
-            self.jump_vel = 0.0;
-        }
 
         // Rotate
         camera.yaw += Rad(self.rotate_horizontal) * self.sensitivity * dt;

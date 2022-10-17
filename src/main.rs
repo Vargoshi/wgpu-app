@@ -315,7 +315,8 @@ fn main() {
         });
 
 
-        let mut camera = camera::Camera::new((5.0, 0.0, 6.0), cgmath::Deg(-90.0), cgmath::Deg(0.0)); //init position of the camera
+        //let mut camera = camera::Camera::new((5.0, 0.0, 6.0), cgmath::Deg(-90.0), cgmath::Deg(0.0)); //init position of the camera
+        let mut camera = camera::Camera::new((0.0, 4.0, 0.0), cgmath::Deg(0.0), cgmath::Deg(0.0)); //init position of the camera
         let mut projection = camera::Projection::new(config.width, config.height, cgmath::Deg(45.0), 0.1, 100.0);
         let mut camera_controller = camera_controller::CameraController::new(4.0,0.4);
     
@@ -379,10 +380,10 @@ fn main() {
             map: vec![
                 2, 2, 2, 2, 2, 2, 2, 2, 
                 2, 0, 0, 2, 0, 0, 0, 2, 
-                2, 0, 0, 2, 0, 2, 0, 2, 
+                2, 0, 0, 2, 0, 1, 0, 2, 
                 2, 2, 0, 2, 0, 0, 0, 2, 
                 2, 0, 0, 0, 0, 0, 0, 2, 
-                2, 0, 0, 0, 0, 2, 0, 2, 
+                2, 0, 0, 0, 0, 1, 0, 2, 
                 2, 0, 0, 0, 0, 0, 0, 2, 
                 2, 2, 2, 2, 2, 2, 2, 2,
             ],
