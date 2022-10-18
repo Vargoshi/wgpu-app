@@ -1,4 +1,4 @@
-use crate::{camera, instance::Instance};
+use crate::{camera, cube::Cube, floor::Floor, instance::Instance};
 
 pub(crate) struct CollisionDetection {
     pub left: bool,
@@ -10,14 +10,14 @@ pub(crate) struct CollisionDetection {
 }
 
 impl CollisionDetection {
-    pub fn detect(&mut self, camera: &mut camera::Camera, instances: &[Instance]) {
+    pub fn detect(&mut self, camera: &mut camera::Camera, instances: &[Instance], cube: &mut Cube) {
         for instance in instances {
-            if (camera.position.x < (instance.position.x + 1.5))
-                && (camera.position.x > (instance.position.x + 1.0))
-                && (camera.position.z < (instance.position.z + 1.3))
-                && (camera.position.z > (instance.position.z - 1.3))
-                && (camera.position.y < (instance.position.y + 1.3))
-                && (camera.position.y > (instance.position.y - 1.3))
+            if (camera.position.x < (instance.position.x + cube.width + 0.5))
+                && (camera.position.x > (instance.position.x + cube.width))
+                && (camera.position.z < (instance.position.z + cube.depth + 0.3))
+                && (camera.position.z > (instance.position.z - (cube.depth + 0.3)))
+                && (camera.position.y < (instance.position.y + cube.height + 0.7))
+                && (camera.position.y > (instance.position.y - (cube.height + 0.7)))
             {
                 self.left = true;
                 break;
@@ -27,12 +27,12 @@ impl CollisionDetection {
         }
 
         for instance in instances {
-            if (camera.position.x < (instance.position.x - 1.0))
-                && (camera.position.x > (instance.position.x - 1.5))
-                && (camera.position.z < (instance.position.z + 1.3))
-                && (camera.position.z > (instance.position.z - 1.3))
-                && (camera.position.y < (instance.position.y + 1.3))
-                && (camera.position.y > (instance.position.y - 1.3))
+            if (camera.position.x < (instance.position.x - cube.width))
+                && (camera.position.x > (instance.position.x - (cube.width + 0.5)))
+                && (camera.position.z < (instance.position.z + cube.depth + 0.3))
+                && (camera.position.z > (instance.position.z - (cube.depth + 0.3)))
+                && (camera.position.y < (instance.position.y + cube.height + 0.7))
+                && (camera.position.y > (instance.position.y - (cube.height + 0.7)))
             {
                 self.right = true;
                 break;
@@ -42,12 +42,12 @@ impl CollisionDetection {
         }
 
         for instance in instances {
-            if (camera.position.x < (instance.position.x + 1.3))
-                && (camera.position.x > (instance.position.x - 1.3))
-                && (camera.position.z < (instance.position.z + 1.5))
-                && (camera.position.z > (instance.position.z + 1.0))
-                && (camera.position.y < (instance.position.y + 1.3))
-                && (camera.position.y > (instance.position.y - 1.3))
+            if (camera.position.x < (instance.position.x + cube.width + 0.3))
+                && (camera.position.x > (instance.position.x - (cube.width + 0.3)))
+                && (camera.position.z < (instance.position.z + cube.depth + 0.5))
+                && (camera.position.z > (instance.position.z + cube.depth))
+                && (camera.position.y < (instance.position.y + cube.height + 0.7))
+                && (camera.position.y > (instance.position.y - (cube.height + 0.7)))
             {
                 self.forward = true;
                 break;
@@ -57,12 +57,12 @@ impl CollisionDetection {
         }
 
         for instance in instances {
-            if (camera.position.x < (instance.position.x + 1.3))
-                && (camera.position.x > (instance.position.x - 1.3))
-                && (camera.position.z < (instance.position.z - 1.0))
-                && (camera.position.z > (instance.position.z - 1.5))
-                && (camera.position.y < (instance.position.y + 1.3))
-                && (camera.position.y > (instance.position.y - 1.3))
+            if (camera.position.x < (instance.position.x + cube.width + 0.3))
+                && (camera.position.x > (instance.position.x - (cube.width + 0.3)))
+                && (camera.position.z < (instance.position.z - cube.depth))
+                && (camera.position.z > (instance.position.z - (cube.depth + 0.5)))
+                && (camera.position.y < (instance.position.y + cube.height + 0.7))
+                && (camera.position.y > (instance.position.y - (cube.height + 0.7)))
             {
                 self.backward = true;
                 break;
@@ -72,12 +72,12 @@ impl CollisionDetection {
         }
 
         for instance in instances {
-            if (camera.position.x < (instance.position.x + 1.3))
-                && (camera.position.x > (instance.position.x - 1.3))
-                && (camera.position.z < (instance.position.z + 1.3))
-                && (camera.position.z > (instance.position.z - 1.3))
-                && (camera.position.y < (instance.position.y + 2.0))
-                && (camera.position.y > (instance.position.y + 1.5))
+            if (camera.position.x < (instance.position.x + cube.width + 0.3))
+                && (camera.position.x > (instance.position.x - (cube.width + 0.3)))
+                && (camera.position.z < (instance.position.z + cube.depth + 0.3))
+                && (camera.position.z > (instance.position.z - (cube.depth + 0.3)))
+                && (camera.position.y < (instance.position.y + cube.height + 1.0))
+                && (camera.position.y > (instance.position.y + cube.height + 0.5))
             {
                 self.up = true;
                 break;
@@ -87,17 +87,39 @@ impl CollisionDetection {
         }
 
         for instance in instances {
-            if (camera.position.x < (instance.position.x + 1.3))
-                && (camera.position.x > (instance.position.x - 1.3))
-                && (camera.position.z < (instance.position.z + 1.3))
-                && (camera.position.z > (instance.position.z - 1.3))
-                && (camera.position.y < (instance.position.y - 1.0))
-                && (camera.position.y > (instance.position.y - 1.5))
+            if (camera.position.x < (instance.position.x + cube.width + 0.3))
+                && (camera.position.x > (instance.position.x - (cube.width + 0.3)))
+                && (camera.position.z < (instance.position.z + cube.depth + 0.3))
+                && (camera.position.z > (instance.position.z - (cube.depth + 0.3)))
+                && (camera.position.y < (instance.position.y - cube.height))
+                && (camera.position.y > (instance.position.y - (cube.height + 0.5)))
             {
                 self.down = true;
                 break;
             } else {
                 self.down = false;
+            }
+        }
+    }
+
+    pub fn floor_detect(
+        &mut self,
+        camera: &mut camera::Camera,
+        instances: &[Instance],
+        floor: &mut Floor,
+    ) {
+        for instance in instances {
+            if (camera.position.x < (instance.position.x + floor.width + 0.3))
+                && (camera.position.x > (instance.position.x - (floor.width + 0.3)))
+                && (camera.position.z < (instance.position.z + floor.depth + 0.3))
+                && (camera.position.z > (instance.position.z - (floor.depth + 0.3)))
+                && (camera.position.y < (instance.position.y))
+                && (camera.position.y > (instance.position.y - (floor.height / 2.0)))
+            {
+                self.up = true;
+                break;
+            } else {
+                self.up = false;
             }
         }
     }

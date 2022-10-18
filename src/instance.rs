@@ -1,6 +1,3 @@
-
-
-
 pub(crate) struct Instance {
     pub(crate) position: cgmath::Vector3<f32>,
     pub(crate) rotation: cgmath::Quaternion<f32>,
@@ -21,13 +18,6 @@ impl Instance {
         }
     }
 }
-
-
-// pub(crate) const INSTANCE_DISPLACEMENT: cgmath::Vector3<f32> = cgmath::Vector3::new(
-//     NUM_INSTANCES_PER_ROW as f32 * 0.5,
-//     0.0,
-//     NUM_INSTANCES_PER_ROW as f32 * 0.5,
-// );
 
 impl InstanceRaw {
     pub(crate) fn desc<'a>() -> wgpu::VertexBufferLayout<'a> {

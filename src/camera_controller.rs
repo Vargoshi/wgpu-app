@@ -6,6 +6,8 @@ use winit::event::*;
 
 use crate::camera;
 use crate::collision_detection::CollisionDetection;
+use crate::cube::Cube;
+use crate::floor::Floor;
 use crate::instance::Instance;
 
 const SAFE_FRAC_PI_2: f32 = FRAC_PI_2 - 0.0001;
@@ -125,7 +127,10 @@ impl CameraController {
         &mut self,
         camera: &mut camera::Camera,
         dt: u128,
+        cube: &mut Cube,
+        floor: &mut Floor,
         instances: &[Instance],
+        floor_instances: &[Instance],
     ) {
         let dt = dt as f32 * 0.001;
 
@@ -138,7 +143,11 @@ impl CameraController {
             down: false,
         };
 
-        collision.detect(camera, instances);
+        collision.detect(camera, instances, cube);
+
+        if !collision.up {
+            collision.floor_detect(camera, floor_instances, floor);
+        }
 
         if collision.up {
             self.on_floor = true;

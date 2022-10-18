@@ -2,6 +2,8 @@
 
 mod camera;
 mod collision_detection;
+mod cube;
+mod floor;
 mod camera_controller;
 mod camera_uniform;
 mod instance;
@@ -10,7 +12,9 @@ mod texture;
 
 use std::time::Instant;
 
-use model::ModelVertex;
+use cube::Cube;
+use floor::Floor;
+
 use wgpu::util::DeviceExt;
 use winit::{
     event::{Event, VirtualKeyCode, WindowEvent, DeviceEvent},
@@ -47,177 +51,8 @@ struct MapTiles {
     depth: usize
 }
 
-const VERTICES: &[ModelVertex] = &[
-    ModelVertex {
-        position: [-1.0, -1.0, 1.0],
-        tex_coords: [0.0, 1.0],
-        normal: [0.0, 0.0, 0.0]
-    }, 
-    ModelVertex {
-        position: [1.0, -1.0, 1.0],
-        tex_coords: [1.0, 1.0],
-        normal: [0.0, 0.0, 0.0]
-    }, 
-    ModelVertex {
-        position: [1.0, 1.0, 1.0],
-        tex_coords: [1.0, 0.0],
-        normal: [0.0, 0.0, 0.0]
-    }, 
-    ModelVertex {
-        position: [-1.0, 1.0, 1.0],
-        tex_coords: [0.0, 0.0],
-        normal: [0.0, 0.0, 0.0]
-    }, 
-
-
-
-
-    ModelVertex {
-        position: [-1.0, 1.0, -1.0],
-        tex_coords: [1.0, 0.0],
-        normal: [0.0, 0.0, 0.0]
-    }, 
-    ModelVertex {
-        position: [1.0, 1.0, -1.0],
-        tex_coords: [0.0, 0.0],
-        normal: [0.0, 0.0, 0.0]
-    }, 
-    ModelVertex {
-        position: [1.0, -1.0, -1.0],
-        tex_coords: [0.0, 1.0],
-        normal: [0.0, 0.0, 0.0]
-    }, 
-    ModelVertex {
-        position: [-1.0, -1.0, -1.0],
-        tex_coords: [1.0, 1.0],
-        normal: [0.0, 0.0, 0.0]
-    }, 
-
-
-
-    ModelVertex {
-        position: [1.0, -1.0, -1.0],
-        tex_coords: [1.0, 1.0],
-        normal: [0.0, 0.0, 0.0]
-    }, 
-    ModelVertex {
-        position: [1.0, 1.0, -1.0],
-        tex_coords: [1.0, 0.0],
-        normal: [0.0, 0.0, 0.0]
-    }, 
-    ModelVertex {
-        position: [1.0, 1.0, 1.0],
-        tex_coords: [0.0, 0.0],
-        normal: [0.0, 0.0, 0.0]
-    }, 
-    ModelVertex {
-        position: [1.0, -1.0, 1.0],
-        tex_coords: [0.0, 1.0],
-        normal: [0.0, 0.0, 0.0]
-    }, 
-
-
-
-    ModelVertex {
-        position: [-1.0, -1.0, 1.0],
-        tex_coords: [1.0, 1.0],
-        normal: [0.0, 0.0, 0.0]
-    }, 
-    ModelVertex {
-        position: [-1.0, 1.0, 1.0],
-        tex_coords: [1.0, 0.0],
-        normal: [0.0, 0.0, 0.0]
-    }, 
-    ModelVertex {
-        position: [-1.0, 1.0, -1.0],
-        tex_coords: [0.0, 0.0],
-        normal: [0.0, 0.0, 0.0]
-    }, 
-    ModelVertex {
-        position: [-1.0, -1.0, -1.0],
-        tex_coords: [0.0, 1.0],
-        normal: [0.0, 0.0, 0.0]
-    }, 
-
-
-
-    ModelVertex {
-        position: [1.0, 1.0, -1.0],
-        tex_coords: [1.0, 0.0],
-        normal: [0.0, 0.0, 0.0]
-    }, 
-    ModelVertex {
-        position: [-1.0, 1.0, -1.0],
-        tex_coords: [0.0, 0.0],
-        normal: [0.0, 0.0, 0.0]
-    }, 
-    ModelVertex {
-        position: [-1.0, 1.0, 1.0],
-        tex_coords: [0.0, 1.0],
-        normal: [0.0, 0.0, 0.0]
-    }, 
-    ModelVertex {
-        position: [1.0, 1.0, 1.0],
-        tex_coords: [1.0, 1.0],
-        normal: [0.0, 0.0, 0.0]
-    }, 
-
-
-
-
-    ModelVertex {
-        position: [1.0, -1.0, 1.0],
-        tex_coords: [0.0, 1.0],
-        normal: [0.0, 0.0, 0.0]
-    }, 
-    ModelVertex {
-        position: [-1.0, -1.0, 1.0],
-        tex_coords: [1.0, 1.0],
-        normal: [0.0, 0.0, 0.0]
-    }, 
-    ModelVertex {
-        position: [-1.0, -1.0, -1.0],
-        tex_coords: [1.0, 0.0],
-        normal: [0.0, 0.0, 0.0]
-    }, 
-    ModelVertex {
-        position: [1.0, -1.0, -1.0],
-        tex_coords: [0.0, 0.0],
-        normal: [0.0, 0.0, 0.0]
-    }, 
-];
-
-const INDICES: &[u16] = &[0, 1, 2, 2, 3, 0,
-4, 5, 6, 6, 7, 4,
-8, 9, 10, 10, 11, 8,
-12, 13, 14, 14, 15, 12,
-16, 17, 18, 18, 19, 16,
-20, 21, 22, 22, 23, 20,];
-
-const VERTICES2: &[ModelVertex] = &[ModelVertex {
-    position: [1.0, -1.0, -1.0],
-    tex_coords: [1.0, 0.0],
-    normal: [0.0, 0.0, 0.0]
-}, 
-ModelVertex {
-    position: [-1.0, -1.0, -1.0],
-    tex_coords: [0.0, 0.0],
-    normal: [0.0, 0.0, 0.0]
-}, 
-ModelVertex {
-    position: [-1.0, -1.0, 1.0],
-    tex_coords: [0.0, 1.0],
-    normal: [0.0, 0.0, 0.0]
-}, 
-ModelVertex {
-    position: [1.0, -1.0, 1.0],
-    tex_coords: [1.0, 1.0],
-    normal: [0.0, 0.0, 0.0]
-}, ];
-
-const INDICES2: &[u16] = &[0, 1, 2, 2, 3, 0,];
-
 fn main() {
+    
     env_logger::init(); // Necessary for logging within WGPU
     let event_loop = EventLoop::new(); // Loop provided by winit for handling window events
     let window = WindowBuilder::new().build(&event_loop).unwrap(); // Create a window centered around the Loop
@@ -314,9 +149,9 @@ fn main() {
             label: Some("diffuse_bind_group2"),
         });
 
-
-        //let mut camera = camera::Camera::new((5.0, 0.0, 6.0), cgmath::Deg(-90.0), cgmath::Deg(0.0)); //init position of the camera
-        let mut camera = camera::Camera::new((0.0, 4.0, 0.0), cgmath::Deg(0.0), cgmath::Deg(0.0)); //init position of the camera
+        let mut cube = Cube::new(2.0,1.0,2.0);
+        let mut floor = Floor::new(2.0,1.0, 2.0);
+        let mut camera = camera::Camera::new((5.0, 1.0, 6.0), cgmath::Deg(-90.0), cgmath::Deg(0.0)); //init position of the camera
         let mut projection = camera::Projection::new(config.width, config.height, cgmath::Deg(45.0), 0.1, 100.0);
         let mut camera_controller = camera_controller::CameraController::new(4.0,0.4);
     
@@ -354,27 +189,27 @@ fn main() {
 
         let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Vertex Buffer"),
-            contents: bytemuck::cast_slice(VERTICES),
+            contents: bytemuck::cast_slice(&cube.vertexes),
             usage: wgpu::BufferUsages::VERTEX,
         });
         let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Index Buffer"),
-            contents: bytemuck::cast_slice(INDICES),
+            contents: bytemuck::cast_slice(&cube.indices),
             usage: wgpu::BufferUsages::INDEX,
         });
-        let num_indices = INDICES.len() as u32;
+        let num_indices = cube.indices.len() as u32;
 
         let vertex_buffer2 = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Vertex Buffer"),
-            contents: bytemuck::cast_slice(VERTICES2),
+            contents: bytemuck::cast_slice(&floor.vertexes),
             usage: wgpu::BufferUsages::VERTEX,
         });
         let index_buffer2 = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Index Buffer"),
-            contents: bytemuck::cast_slice(INDICES2),
+            contents: bytemuck::cast_slice(&floor.indices),
             usage: wgpu::BufferUsages::INDEX,
         });
-        let num_indices2 = INDICES2.len() as u32;
+        let num_indices2 = floor.indices.len() as u32;
 
         let walls = MapTiles{
             map: vec![
@@ -391,9 +226,9 @@ fn main() {
             depth: 8
         };
 
-    let (instances, instance_buffer) = instance_init(&device, walls);
+    let (instances, instance_buffer) = instance_init(&device, walls, cube.width, cube.height, cube.depth);
 
-    let floor = MapTiles{
+    let floor_tiles = MapTiles{
         map: vec![
             0, 0, 0, 0, 0, 0, 0, 0, 
             0, 1, 1, 0, 1, 1, 1, 0, 
@@ -408,7 +243,7 @@ fn main() {
         depth: 8
     };
 
-    let (instances2, instance_buffer2) = instance_init(&device, floor);
+    let (instances2, instance_buffer2) = instance_init(&device, floor_tiles, floor.width, floor.height, floor.depth);
 
     let mut depth_texture =
         texture::Texture::create_depth_texture(&device, &config, "depth_texture");
@@ -532,7 +367,7 @@ fn main() {
                     
                 }
 
-                camera_controller.update_camera(&mut camera, dt, instances.as_slice());
+                camera_controller.update_camera(&mut camera, dt, &mut cube, &mut floor, instances.as_slice(), instances2.as_slice());
                 camera_uniform.update_view_proj(&camera, &projection);
                 queue.write_buffer(&camera_buffer, 0, bytemuck::cast_slice(&[camera_uniform]));
 
@@ -612,8 +447,8 @@ fn pipeline_init(
     render_pipeline
 }
 
-fn instance_init(device: &wgpu::Device, tiles: MapTiles) -> (Vec<Instance>, wgpu::Buffer) {
-    const BLOCK_SIZE: f32 = 2.0;
+fn instance_init(device: &wgpu::Device, tiles: MapTiles, width: f32, height: f32, depth: f32) -> (Vec<Instance>, wgpu::Buffer) {
+
     let instances = (0..tiles.depth)
         .flat_map(|z| {
             (0..tiles.width)
@@ -622,9 +457,9 @@ fn instance_init(device: &wgpu::Device, tiles: MapTiles) -> (Vec<Instance>, wgpu
         })
         .map(|(x, y, z)| {
             (
-                1.0 + BLOCK_SIZE * x as f32,
-                BLOCK_SIZE * y as f32,
-                1.0 + BLOCK_SIZE * z as f32,
+                2.0 * width * x as f32,
+                2.0 * height * y as f32,
+                2.0 * depth * z as f32,
             )
         })
         .map(|(x, y, z)| Instance {
