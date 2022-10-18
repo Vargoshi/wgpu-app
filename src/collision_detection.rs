@@ -10,6 +10,17 @@ pub(crate) struct CollisionDetection {
 }
 
 impl CollisionDetection {
+    pub(crate) fn new() -> Self {
+        Self {
+            left: false,
+            right: false,
+            forward: false,
+            backward: false,
+            up: false,
+            down: false,
+        }
+    }
+
     pub fn detect(&mut self, camera: &mut camera::Camera, instances: &[Instance], cube: &mut Cube) {
         for instance in instances {
             if (camera.position.x < (instance.position.x + cube.width + 0.5))

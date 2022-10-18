@@ -134,14 +134,7 @@ impl CameraController {
     ) {
         let dt = dt as f32 * 0.001;
 
-        let mut collision = CollisionDetection {
-            left: false,
-            right: false,
-            forward: false,
-            backward: false,
-            up: false,
-            down: false,
-        };
+        let mut collision = CollisionDetection::new();
 
         collision.detect(camera, instances, cube);
 
@@ -149,122 +142,7 @@ impl CameraController {
             collision.floor_detect(camera, floor_instances, floor);
         }
 
-        if collision.up {
-            self.on_floor = true;
-            self.jump_vel = 0.0;
-        } else {
-            self.on_floor = false;
-        }
-
-        if self.press_forward && self.forward_vel < 1.5 {
-            self.forward_vel += 0.5;
-        }
-
-        if self.press_backward && self.backward_vel < 1.5 {
-            self.backward_vel += 0.5;
-        }
-
-        if self.press_right && self.right_vel < 1.5 {
-            self.right_vel += 0.5;
-        }
-
-        if self.press_left && self.left_vel < 1.5 {
-            self.left_vel += 0.5;
-        }
-
-        if self.press_up && self.on_floor {
-            self.on_floor = false;
-            self.jump_vel += 2.0;
-        }
-
-        let move_in_x_forward = self.forward_vel * camera.yaw.cos() * self.speed * dt;
-
-        if ((move_in_x_forward) < 0.0 && !collision.left)
-            || ((move_in_x_forward) > 0.0 && !collision.right)
-        {
-            camera.position.x += move_in_x_forward;
-        }
-
-        let move_in_z_forward = self.forward_vel * camera.yaw.sin() * self.speed * dt;
-
-        if ((move_in_z_forward) < 0.0 && !collision.forward)
-            || ((move_in_z_forward) > 0.0 && !collision.backward)
-        {
-            camera.position.z += move_in_z_forward;
-        }
-
-        let move_in_x_backward = self.backward_vel * camera.yaw.cos() * self.speed * dt;
-
-        if ((move_in_x_backward) > 0.0 && !collision.left)
-            || ((move_in_x_backward) < 0.0 && !collision.right)
-        {
-            camera.position.x -= move_in_x_backward;
-        }
-
-        let move_in_z_backward = self.backward_vel * camera.yaw.sin() * self.speed * dt;
-
-        if ((move_in_z_backward) > 0.0 && !collision.forward)
-            || ((move_in_z_backward) < 0.0 && !collision.backward)
-        {
-            camera.position.z -= move_in_z_backward;
-        }
-
-        let move_in_x_right = self.right_vel * camera.yaw.sin() * self.speed * dt;
-
-        if ((move_in_x_right) > 0.0 && !collision.left)
-            || ((move_in_x_right) < 0.0 && !collision.right)
-        {
-            camera.position.x -= move_in_x_right;
-        }
-
-        let move_in_z_right = self.right_vel * camera.yaw.cos() * self.speed * dt;
-
-        if ((move_in_z_right) < 0.0 && !collision.forward)
-            || ((move_in_z_right) > 0.0 && !collision.backward)
-        {
-            camera.position.z += move_in_z_right;
-        }
-
-        let move_in_x_left = self.left_vel * camera.yaw.sin() * self.speed * dt;
-
-        if ((move_in_x_left) < 0.0 && !collision.left)
-            || ((move_in_x_left) > 0.0 && !collision.right)
-        {
-            camera.position.x += move_in_x_left;
-        }
-
-        let move_in_z_left = self.left_vel * camera.yaw.cos() * self.speed * dt;
-
-        if ((move_in_z_left) > 0.0 && !collision.forward)
-            || ((move_in_z_left) < 0.0 && !collision.backward)
-        {
-            camera.position.z -= move_in_z_left;
-        }
-
-        if self.forward_vel > 0.0 {
-            self.forward_vel -= 0.1;
-        }
-
-        if self.backward_vel > 0.0 {
-            self.backward_vel -= 0.1;
-        }
-
-        if self.right_vel > 0.0 {
-            self.right_vel -= 0.1;
-        }
-
-        if self.left_vel > 0.0 {
-            self.left_vel -= 0.1;
-        }
-
-        if !self.on_floor {
-            self.jump_vel -= 0.05;
-        }
-
-        // Move up/down. Since we don't use roll, we can just
-        // modify the y coordinate directly.
-        //camera.position.y += (self.amount_up - self.amount_down) * self.speed * dt;
-        camera.position.y += self.jump_vel * self.speed * dt;
+        self.movement(collision, camera, dt);
 
         // Rotate
         camera.yaw += Rad(self.rotate_horizontal) * self.sensitivity * dt;
@@ -288,5 +166,97 @@ impl CameraController {
         } else if camera.yaw > Rad(SAFE_FRAC_PI_2 * 2.0) {
             camera.yaw -= Rad(SAFE_FRAC_PI_2 * 4.0);
         }
+    }
+
+    fn movement(&mut self, collision: CollisionDetection, camera: &mut camera::Camera, dt: f32) {
+        if collision.up {
+            self.on_floor = true;
+            self.jump_vel = 0.0;
+        } else {
+            self.on_floor = false;
+        }
+        if self.press_forward && self.forward_vel < 1.5 {
+            self.forward_vel += 0.5;
+        }
+        if self.press_backward && self.backward_vel < 1.5 {
+            self.backward_vel += 0.5;
+        }
+        if self.press_right && self.right_vel < 1.5 {
+            self.right_vel += 0.5;
+        }
+        if self.press_left && self.left_vel < 1.5 {
+            self.left_vel += 0.5;
+        }
+        if self.press_up && self.on_floor {
+            self.on_floor = false;
+            self.jump_vel += 2.0;
+        }
+        let move_in_x_forward = self.forward_vel * camera.yaw.cos() * self.speed * dt;
+        if ((move_in_x_forward) < 0.0 && !collision.left)
+            || ((move_in_x_forward) > 0.0 && !collision.right)
+        {
+            camera.position.x += move_in_x_forward;
+        }
+        let move_in_z_forward = self.forward_vel * camera.yaw.sin() * self.speed * dt;
+        if ((move_in_z_forward) < 0.0 && !collision.forward)
+            || ((move_in_z_forward) > 0.0 && !collision.backward)
+        {
+            camera.position.z += move_in_z_forward;
+        }
+        let move_in_x_backward = self.backward_vel * camera.yaw.cos() * self.speed * dt;
+        if ((move_in_x_backward) > 0.0 && !collision.left)
+            || ((move_in_x_backward) < 0.0 && !collision.right)
+        {
+            camera.position.x -= move_in_x_backward;
+        }
+        let move_in_z_backward = self.backward_vel * camera.yaw.sin() * self.speed * dt;
+        if ((move_in_z_backward) > 0.0 && !collision.forward)
+            || ((move_in_z_backward) < 0.0 && !collision.backward)
+        {
+            camera.position.z -= move_in_z_backward;
+        }
+        let move_in_x_right = self.right_vel * camera.yaw.sin() * self.speed * dt;
+        if ((move_in_x_right) > 0.0 && !collision.left)
+            || ((move_in_x_right) < 0.0 && !collision.right)
+        {
+            camera.position.x -= move_in_x_right;
+        }
+        let move_in_z_right = self.right_vel * camera.yaw.cos() * self.speed * dt;
+        if ((move_in_z_right) < 0.0 && !collision.forward)
+            || ((move_in_z_right) > 0.0 && !collision.backward)
+        {
+            camera.position.z += move_in_z_right;
+        }
+        let move_in_x_left = self.left_vel * camera.yaw.sin() * self.speed * dt;
+        if ((move_in_x_left) < 0.0 && !collision.left)
+            || ((move_in_x_left) > 0.0 && !collision.right)
+        {
+            camera.position.x += move_in_x_left;
+        }
+        let move_in_z_left = self.left_vel * camera.yaw.cos() * self.speed * dt;
+        if ((move_in_z_left) > 0.0 && !collision.forward)
+            || ((move_in_z_left) < 0.0 && !collision.backward)
+        {
+            camera.position.z -= move_in_z_left;
+        }
+        if self.forward_vel > 0.0 {
+            self.forward_vel -= 0.1;
+        }
+        if self.backward_vel > 0.0 {
+            self.backward_vel -= 0.1;
+        }
+        if self.right_vel > 0.0 {
+            self.right_vel -= 0.1;
+        }
+        if self.left_vel > 0.0 {
+            self.left_vel -= 0.1;
+        }
+        if !self.on_floor {
+            self.jump_vel -= 0.05;
+        }
+        // Move up/down. Since we don't use roll, we can just
+        // modify the y coordinate directly.
+        //camera.position.y += (self.amount_up - self.amount_down) * self.speed * dt;
+        camera.position.y += self.jump_vel * self.speed * dt;
     }
 }
