@@ -4,6 +4,7 @@ mod camera;
 mod collision_detection;
 mod cube;
 mod floor;
+mod sprite;
 mod camera_controller;
 mod camera_uniform;
 mod instance;
@@ -17,6 +18,7 @@ use cube::Cube;
 use floor::Floor;
 
 
+use sprite::Sprite;
 use systems::*;
 use wgpu::util::DeviceExt;
 use winit::{
@@ -77,7 +79,7 @@ fn main() {
 
     surface.configure(&device, &config);
 
-    let mut camera = camera::Camera::new((5.0, 1.0, 6.0), cgmath::Deg(-90.0), cgmath::Deg(0.0)); //init position of the camera
+    let mut camera = camera::Camera::new((5.0, 1.0, 10.0), cgmath::Deg(-90.0), cgmath::Deg(0.0)); //init position of the camera
     let mut projection = camera::Projection::new(config.width, config.height, cgmath::Deg(45.0), 0.1, 100.0);
     let mut camera_controller = camera_controller::CameraController::new(4.0,0.4);
     
@@ -90,13 +92,13 @@ fn main() {
         });
         
     let (camera_bind_group_layout, camera_bind_group) = camera_bind_init(&device, &camera_buffer);
-        
+
     let texture_bind_group_layout = texture_bind_group_layout_init(&device);
     let mut depth_texture =
         texture::Texture::create_depth_texture(&device, &config, "depth_texture");
 
 
-    let mut cube = Cube::new(2.0,1.0,2.0);
+    let mut cube = Cube::new(1.0,1.0,1.0);
     let wall_bytes = include_bytes!("wall.png");
     let wall_bind_group = create_texture(&device, &queue, wall_bytes, &texture_bind_group_layout);
     let (wall_vertex_buffer, wall_index_buffer, wall_num_indices) = create_buffers(&device, &cube.vertexes, &cube.indices);
@@ -118,7 +120,7 @@ fn main() {
 
     let (instances, instance_buffer) = instance_init(&device, walls, cube.width, cube.height, cube.depth);
         
-    let mut floor = Floor::new(2.0,1.0, 2.0);
+    let mut floor = Floor::new(1.0,1.0, 1.0);
     let floor_bytes = include_bytes!("floor.png");
     let floor_bind_group = create_texture(&device, &queue, floor_bytes, &texture_bind_group_layout);
     let (floor_vertex_buffer, floor_index_buffer, floor_num_indices) = create_buffers(&device, &floor.vertexes, &floor.indices);
@@ -139,6 +141,28 @@ fn main() {
     };
 
     let (instances2, instance_buffer2) = instance_init(&device, floor_tiles, floor.width, floor.height, floor.depth);
+
+    let mut sprite = Sprite::new(1.0,1.0);
+    let sprite_bytes = include_bytes!("sprite.png");
+    let sprite_bind_group = create_texture(&device, &queue, sprite_bytes, &texture_bind_group_layout);
+    let (sprite_vertex_buffer, sprite_index_buffer, sprite_num_indices) = create_buffers(&device, &sprite.vertexes, &sprite.indices);
+
+    let sprite_tiles = MapTiles{
+        map: vec![
+            0, 0, 0, 0, 0, 0, 0, 0, 
+            0, 0, 0, 0, 0, 0, 0, 0, 
+            0, 0, 0, 0, 0, 0, 0, 0, 
+            0, 0, 0, 0, 0, 0, 0, 0, 
+            0, 0, 0, 0, 0, 0, 0, 0, 
+            0, 0, 1, 0, 0, 0, 0, 0, 
+            0, 0, 0, 0, 0, 0, 0, 0, 
+            0, 0, 0, 0, 0, 0, 0, 0,
+        ],
+        width: 8,
+        depth: 8
+    };
+
+    let (instances3, instance_buffer3) = instance_init(&device, sprite_tiles, sprite.width, sprite.height, 1.0);
 
     let render_pipeline = pipeline_init(
         &device,
@@ -256,6 +280,12 @@ fn main() {
                     render_pass.set_vertex_buffer(1, instance_buffer2.slice(..));
                     render_pass.set_index_buffer(floor_index_buffer.slice(..), wgpu::IndexFormat::Uint16);
                     render_pass.draw_indexed(0..floor_num_indices, 0, 0..instances2.len() as _);
+
+                    render_pass.set_bind_group(0, &sprite_bind_group, &[]);
+                    render_pass.set_vertex_buffer(0, sprite_vertex_buffer.slice(..));
+                    render_pass.set_vertex_buffer(1, instance_buffer3.slice(..));
+                    render_pass.set_index_buffer(sprite_index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+                    render_pass.draw_indexed(0..sprite_num_indices, 0, 0..instances3.len() as _);
                     
                 }
 

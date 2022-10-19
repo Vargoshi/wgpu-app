@@ -8,12 +8,11 @@ struct InstanceInput {
 // Vertex shader
 
 struct Camera {
-    view_pos: vec4<f32>,
+    input_values: vec4<f32>,
     view_proj: mat4x4<f32>,
 }
 @group(1) @binding(0)
 var<uniform> camera: Camera;
-
 
 struct VertexInput {
     @location(0) position: vec3<f32>,
@@ -37,12 +36,19 @@ fn vs_main(
         instance.model_matrix_3,
     );
 
-    let world_position = model_matrix * vec4<f32>(model.position, 1.0);
-
-    var out: VertexOutput;
-    out.tex_coords = model.tex_coords;
-    out.clip_position = camera.view_proj * world_position;
-    return out;
+    if (model.position.z == 0.0) {
+        let world_position = model_matrix * vec4<f32>(0.0, model.position.y * 0.75, 0.0, 1.0);
+        var out: VertexOutput;
+        out.tex_coords = model.tex_coords;
+        out.clip_position = camera.view_proj * world_position + vec4((model.position.x / camera.input_values.x) * 2.0, 0.0, 0.0, 0.0);
+        return out;
+    } else {
+        let world_position = model_matrix * vec4<f32>(model.position, 1.0);
+        var out: VertexOutput;
+        out.tex_coords = model.tex_coords;
+        out.clip_position = camera.view_proj * world_position;
+        return out;
+    }
 }
 
 // Fragment shader
