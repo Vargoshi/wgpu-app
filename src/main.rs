@@ -143,7 +143,7 @@ fn main() {
     let (instances2, instance_buffer2) = instance_init(&device, floor_tiles, floor.width, floor.height, floor.depth);
 
     let mut sprite = Sprite::new(1.0,1.0);
-    let sprite_bytes = include_bytes!("sprite.png");
+    let sprite_bytes = include_bytes!("enemy.png");
     let sprite_bind_group = create_texture(&device, &queue, sprite_bytes, &texture_bind_group_layout);
     let (sprite_vertex_buffer, sprite_index_buffer, sprite_num_indices) = create_buffers(&device, &sprite.vertexes, &sprite.indices);
 

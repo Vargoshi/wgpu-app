@@ -37,10 +37,28 @@ fn vs_main(
     );
 
     if (model.position.z == 0.0) {
-        let world_position = model_matrix * vec4<f32>(0.0, model.position.y * 0.75, 0.0, 1.0);
+        // x-axis scalable billboard
+        let world_position = model_matrix * vec4<f32>(0.0, model.position.y, 0.0, 1.0);
         var out: VertexOutput;
         out.tex_coords = model.tex_coords;
-        out.clip_position = camera.view_proj * world_position + vec4((model.position.x / camera.input_values.x) * 2.0, 0.0, 0.0, 0.0);
+        out.clip_position = camera.view_proj * world_position + vec4((model.position.x / camera.input_values.x) * 2.66, 0.0, 0.0, 0.0);
+
+
+        // scalable billboard
+        // let world_position = model_matrix * vec4<f32>(0.0, 0.0, 0.0, 1.0);
+        // var out: VertexOutput;
+        // out.tex_coords = model.tex_coords;
+        // out.clip_position = camera.view_proj * world_position + vec4((model.position.x / camera.input_values.x) * 2.0, model.position.y * 2.0, 0.0, 0.0);
+
+
+        // unscalable billboard
+        // let world_position = model_matrix * vec4<f32>(0.0, 0.0, 0.0, 1.0);
+        // var out: VertexOutput;
+        // out.tex_coords = model.tex_coords;
+        // let clipposition: vec4<f32> = camera.view_proj * world_position + vec4((model.position.x / camera.input_values.x) * 2.0, model.position.y * 2.0, 0.0, 0.0);
+        // let clipposition: vec4<f32> = camera.view_proj * world_position + vec4((model.position.x / camera.input_values.x) * 2.0 * clipposition.z * 0.3, model.position.y * 2.0 * clipposition.z * 0.3, 0.0, 0.0);
+        // let clipposition: vec4<f32> = vec4(clipposition.xy, 1.0, clipposition.w);
+        // out.clip_position = clipposition;
         return out;
     } else {
         let world_position = model_matrix * vec4<f32>(model.position, 1.0);

@@ -1,5 +1,5 @@
 use anyhow::*;
-use image::GenericImageView;
+use image::{GenericImageView, Rgba};
 use std::num::NonZeroU32;
 
 pub struct Texture {
@@ -74,7 +74,15 @@ impl Texture {
         label: Option<&str>,
     ) -> Result<Self> {
         let dimensions = img.dimensions();
-        let rgba = img.to_rgba8();
+        let mut rgba = img.to_rgba8();
+
+        for i in 0..(dimensions.1) as usize {
+            for j in 0..(dimensions.0) as usize {
+                if rgba[(j as u32, i as u32)].0 == [255, 0, 255, 255] {
+                    rgba[(j as u32, i as u32)].0 = [0, 0, 0, 0];
+                }
+            }
+        }
 
         let size = wgpu::Extent3d {
             width: dimensions.0,
