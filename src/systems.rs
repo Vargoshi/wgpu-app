@@ -222,3 +222,44 @@ pub(crate) fn instance_init(
     });
     (instances, instance_buffer)
 }
+
+pub(crate) fn slope_instance_init(
+    device: &wgpu::Device,
+    tiles: MapTiles,
+    width: f32,
+    height: f32,
+    depth: f32,
+) -> (Vec<Instance>, wgpu::Buffer) {
+    let instances = (0..tiles.depth)
+        .flat_map(|z| {
+            (0..tiles.width)
+                .map(move |x| (x, z))
+                .flat_map(|(x, z)| (0..tiles.map[z * tiles.width + x]).map(move |y| (x, y, z)))
+        })
+        .map(|(x, y, z)| {
+            (
+                2.0 * width * x as f32,
+                (height - 1.0) + (2.0 * height * y as f32),
+                2.0 * depth * z as f32,
+            )
+        })
+        .map(|(x, y, z)| Instance {
+            position: cgmath::Vector3 { x, y, z },
+            rotation: cgmath::Quaternion::from_axis_angle(
+                cgmath::Vector3::unit_z(),
+                cgmath::Deg(0.0),
+            ),
+        })
+        .collect::<Vec<_>>();
+
+    let instance_data = instances
+        .iter()
+        .map(instance::Instance::to_raw)
+        .collect::<Vec<_>>();
+    let instance_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        label: Some("Instance Buffer"),
+        contents: bytemuck::cast_slice(&instance_data),
+        usage: wgpu::BufferUsages::VERTEX,
+    });
+    (instances, instance_buffer)
+}

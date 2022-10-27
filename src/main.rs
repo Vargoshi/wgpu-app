@@ -5,6 +5,7 @@ mod collision_detection;
 mod cube;
 mod floor;
 mod sprite;
+mod slope;
 mod camera_controller;
 mod camera_uniform;
 mod instance;
@@ -14,10 +15,11 @@ mod systems;
 
 use std::time::Instant;
 
+use collision_detection::CollisionDetection;
 use cube::Cube;
 use floor::Floor;
 
-
+use slope::Slope;
 use sprite::Sprite;
 use systems::*;
 use wgpu::util::DeviceExt;
@@ -104,15 +106,25 @@ fn main() {
     let (wall_vertex_buffer, wall_index_buffer, wall_num_indices) = create_buffers(&device, &cube.vertexes, &cube.indices);
         
     let walls = MapTiles{
+            // map: vec![
+            //     2, 2, 2, 2, 2, 2, 2, 2, 
+            //     2, 0, 0, 2, 0, 0, 0, 2, 
+            //     2, 0, 0, 2, 0, 1, 0, 2, 
+            //     2, 2, 0, 2, 0, 0, 0, 2, 
+            //     2, 0, 0, 0, 0, 0, 0, 2, 
+            //     2, 0, 0, 0, 0, 1, 0, 2, 
+            //     2, 0, 0, 0, 0, 0, 0, 2, 
+            //     2, 2, 2, 2, 2, 2, 2, 2,
+            // ],
             map: vec![
-                2, 2, 2, 2, 2, 2, 2, 2, 
-                2, 0, 0, 2, 0, 0, 0, 2, 
-                2, 0, 0, 2, 0, 1, 0, 2, 
-                2, 2, 0, 2, 0, 0, 0, 2, 
-                2, 0, 0, 0, 0, 0, 0, 2, 
-                2, 0, 0, 0, 0, 1, 0, 2, 
-                2, 0, 0, 0, 0, 0, 0, 2, 
-                2, 2, 2, 2, 2, 2, 2, 2,
+                6, 5, 6, 5, 6, 5, 6, 5, 
+                5, 0, 0, 5, 0, 0, 0, 6, 
+                6, 0, 0, 5, 0, 0, 0, 5, 
+                5, 5, 0, 5, 0, 0, 0, 6, 
+                6, 0, 0, 0, 0, 0, 0, 5, 
+                5, 0, 0, 0, 0, 0, 0, 6, 
+                6, 0, 0, 0, 0, 0, 0, 5, 
+                5, 6, 5, 6, 5, 6, 5, 6,
             ],
             width: 8,
             depth: 8
@@ -126,13 +138,23 @@ fn main() {
     let (floor_vertex_buffer, floor_index_buffer, floor_num_indices) = create_buffers(&device, &floor.vertexes, &floor.indices);
 
     let floor_tiles = MapTiles{
+        // map: vec![
+        //     0, 0, 0, 0, 0, 0, 0, 0, 
+        //     0, 1, 1, 0, 1, 1, 1, 0, 
+        //     0, 1, 1, 0, 1, 0, 1, 0, 
+        //     0, 0, 1, 0, 1, 1, 1, 0, 
+        //     0, 1, 1, 1, 1, 1, 1, 0, 
+        //     0, 1, 1, 1, 1, 0, 1, 0, 
+        //     0, 1, 1, 1, 1, 1, 1, 0, 
+        //     0, 0, 0, 0, 0, 0, 0, 0,
+        // ],
         map: vec![
             0, 0, 0, 0, 0, 0, 0, 0, 
             0, 1, 1, 0, 1, 1, 1, 0, 
-            0, 1, 1, 0, 1, 0, 1, 0, 
+            0, 1, 1, 0, 1, 1, 1, 0, 
             0, 0, 1, 0, 1, 1, 1, 0, 
             0, 1, 1, 1, 1, 1, 1, 0, 
-            0, 1, 1, 1, 1, 0, 1, 0, 
+            0, 1, 1, 1, 1, 1, 1, 0, 
             0, 1, 1, 1, 1, 1, 1, 0, 
             0, 0, 0, 0, 0, 0, 0, 0,
         ],
@@ -142,7 +164,7 @@ fn main() {
 
     let (instances2, instance_buffer2) = instance_init(&device, floor_tiles, floor.width, floor.height, floor.depth);
 
-    let mut sprite = Sprite::new(1.0,1.0);
+    let sprite = Sprite::new(1.0,1.0);
     let sprite_bytes = include_bytes!("enemy.png");
     let sprite_bind_group = create_texture(&device, &queue, sprite_bytes, &texture_bind_group_layout);
     let (sprite_vertex_buffer, sprite_index_buffer, sprite_num_indices) = create_buffers(&device, &sprite.vertexes, &sprite.indices);
@@ -163,6 +185,30 @@ fn main() {
     };
 
     let (instances3, instance_buffer3) = instance_init(&device, sprite_tiles, sprite.width, sprite.height, 1.0);
+
+
+    let mut slope = Slope::new(1.0,6.0, 5.0, "backward");
+    let slope_bytes = include_bytes!("floor.png");
+    let slope_bind_group = create_texture(&device, &queue, slope_bytes, &texture_bind_group_layout);
+    let (slope_vertex_buffer, slope_index_buffer, slope_num_indices) = create_buffers(&device, &slope.vertexes, &slope.indices);
+
+    let slope_tiles = MapTiles{
+        map: vec![
+            0, 0, 0, 0, 0, 0, 0, 0, 
+            0, 0, 0, 0, 0, 0, 0, 0, 
+            0, 0, 0, 0, 0, 0, 0, 0, 
+            0, 0, 0, 0, 0, 0, 1, 0, 
+            0, 0, 0, 0, 0, 0, 0, 0, 
+            0, 0, 0, 0, 0, 0, 0, 0, 
+            0, 0, 0, 0, 0, 0, 0, 0, 
+            0, 0, 0, 0, 0, 0, 0, 0,
+        ],
+        width: 8,
+        depth: 8
+    };
+
+    let (instances4, instance_buffer4) = slope_instance_init(&device, slope_tiles, slope.width, slope.height, 1.0);
+
 
     let render_pipeline = pipeline_init(
         &device,
@@ -286,10 +332,29 @@ fn main() {
                     render_pass.set_vertex_buffer(1, instance_buffer3.slice(..));
                     render_pass.set_index_buffer(sprite_index_buffer.slice(..), wgpu::IndexFormat::Uint16);
                     render_pass.draw_indexed(0..sprite_num_indices, 0, 0..instances3.len() as _);
+
+                    render_pass.set_bind_group(0, &slope_bind_group, &[]);
+                    render_pass.set_vertex_buffer(0, slope_vertex_buffer.slice(..));
+                    render_pass.set_vertex_buffer(1, instance_buffer4.slice(..));
+                    render_pass.set_index_buffer(slope_index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+                    render_pass.draw_indexed(0..slope_num_indices, 0, 0..instances4.len() as _);
+                    
                     
                 }
 
-                camera_controller.update_camera(&mut camera, dt, &mut cube, &mut floor, instances.as_slice(), instances2.as_slice());
+                let mut collision = CollisionDetection::new();
+
+                collision.detect(&mut camera, instances.as_slice(), &mut cube);
+        
+                if !collision.up {
+                    collision.slope_detect(&mut camera, instances4.as_slice(), &mut slope);
+                }
+        
+                if !collision.up {
+                    collision.floor_detect(&mut camera, instances2.as_slice(), &mut floor);
+                }
+
+                camera_controller.update_camera(&mut camera, dt, collision);
                 camera_uniform.update_view_proj(&camera, &projection);
                 queue.write_buffer(&camera_buffer, 0, bytemuck::cast_slice(&[camera_uniform]));
 

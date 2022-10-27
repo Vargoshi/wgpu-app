@@ -1,4 +1,4 @@
-use crate::{camera, cube::Cube, floor::Floor, instance::Instance};
+use crate::{camera, cube::Cube, floor::Floor, instance::Instance, slope::Slope};
 
 pub(crate) struct CollisionDetection {
     pub left: bool,
@@ -131,6 +131,46 @@ impl CollisionDetection {
                 break;
             } else {
                 self.up = false;
+            }
+        }
+    }
+
+    pub fn slope_detect(
+        &mut self,
+        camera: &mut camera::Camera,
+        instances: &[Instance],
+        slope: &mut Slope,
+    ) {
+        if slope.orientation == 2 {
+            for instance in instances {
+                if (camera.position.x < (instance.position.x + slope.width + 0.2))
+                    && (camera.position.x > (instance.position.x - (slope.width + 0.2)))
+                    && (camera.position.z < (instance.position.z + slope.depth + 0.2))
+                    && (camera.position.z > (instance.position.z - (slope.depth + 0.2)))
+                    && (camera.position.y
+                        < (instance.position.y
+                            + (1.0
+                                - (camera.position.z - instance.position.z)
+                                    * (slope.height / slope.depth))
+                            + 0.4))
+                    && (camera.position.y
+                        > (instance.position.y
+                            + (1.0
+                                - (camera.position.z - instance.position.z)
+                                    * (slope.height / slope.depth))
+                            - 0.4))
+                {
+                    camera.position.y = instance.position.y
+                        + (1.0
+                            - (camera.position.z - instance.position.z)
+                                * (slope.height / slope.depth))
+                        + 0.3;
+
+                    self.up = true;
+                    break;
+                } else {
+                    self.up = false;
+                }
             }
         }
     }
